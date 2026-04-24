@@ -1,0 +1,248 @@
+/* ── 控制列 ── */
+#card-viewer {
+  max-width: 100%;
+}
+
+#viewer-controls {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+  background: #1e2130;
+  border: 1px solid #2d3348;
+  border-radius: 12px;
+  padding: 16px 20px;
+  transition: background 0.2s, border-color 0.2s;
+}
+body.light #viewer-controls { background: #fff; border-color: #cbd5e1; }
+
+.ctrl-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ctrl-label {
+  font-size: 12px;
+  color: #94a3b8;
+  min-width: 52px;
+}
+body.light .ctrl-label { color: #64748b; }
+
+.filter-group { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.filter-group label {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  color: #cbd5e1;
+  cursor: pointer;
+  padding: 2px 6px;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  user-select: none;
+}
+.filter-group label:hover { border-color: #64748b; }
+.filter-group input[type=checkbox] { accent-color: #60a5fa; }
+body.light .filter-group label { color: #334155; border-color: #cbd5e1; }
+body.light .filter-group label:hover { border-color: #94a3b8; }
+
+.btn-sm {
+  font-size: 11px;
+  padding: 3px 8px;
+  border: 1px solid #475569;
+  border-radius: 4px;
+  background: #1e293b;
+  color: #cbd5e1;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-sm:hover { background: #334155; }
+.btn-sm.active { background: #1d4ed8; border-color: #3b82f6; color: #fff; }
+body.light .btn-sm { background: #e2e8f0; border-color: #94a3b8; color: #334155; }
+body.light .btn-sm:hover { background: #cbd5e1; }
+body.light .btn-sm.active { background: #1d4ed8; border-color: #3b82f6; color: #fff; }
+
+#count-label { font-size: 12px; color: #64748b; }
+
+/* 玩家資訊列 */
+#player-info-bar {
+  display: none;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  background: #1e2130;
+  border: 1px solid #2d3348;
+  border-radius: 6px;
+  flex-wrap: wrap;
+  transition: background 0.2s, border-color 0.2s;
+}
+body.light #player-info-bar { background: #fff; border-color: #cbd5e1; }
+
+#player-info-bar .pi-item { display: flex; flex-direction: column; gap: 2px; }
+#player-info-bar .pi-label { font-size: 10px; color: #64748b; line-height: 1; }
+#player-info-bar .pi-value { font-size: 14px; font-weight: 700; color: #f1f5f9; line-height: 1; }
+body.light #player-info-bar .pi-value { color: #1e293b; }
+
+/* ── Grid ── */
+.grid { display: flex; flex-wrap: wrap; gap: 16px; }
+
+/* ── 卡片外框 ── */
+.op-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 120px;
+}
+
+.op-card {
+  position: relative;
+  width: 120px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #1a1a2e;
+  border: 1px solid #333;
+}
+body.light .op-card { background: #e2e8f0; border-color: #94a3b8; }
+
+.op-card .portrait {
+  display: block;
+  width: 100%;
+  aspect-ratio: 180 / 360;
+  object-fit: cover;
+  object-position: top center;
+}
+
+/* 稀有度左側色條 */
+.op-card .rarity-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 5px; }
+.rarity-6 { background: linear-gradient(to bottom, #ff8c00, #ffd700); }
+.rarity-5 { background: linear-gradient(to bottom, #d4a017, #f0c040); }
+.rarity-4 { background: linear-gradient(to bottom, #7b2fbe, #b06ae9); }
+.rarity-3 { background: linear-gradient(to bottom, #1a6fb5, #4da6ff); }
+.rarity-2 { background: linear-gradient(to bottom, #2e7d32, #66bb6a); }
+.rarity-1 { background: linear-gradient(to bottom, #555, #999); }
+
+/* 左側縱列 */
+.op-card .left-col {
+  position: absolute;
+  top: 4px; left: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.op-card .prof-icon { width: 24px; height: 24px; object-fit: contain; filter: drop-shadow(0 1px 3px #000); }
+
+.op-card .elite-lvl {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  background: rgba(0,0,0,0.55);
+  border-radius: 4px;
+  padding: 2px 3px;
+}
+.op-card .elite-icon { width: 18px; height: 18px; object-fit: contain; }
+.op-card .level-text { font-size: 13px; font-weight: 700; color: #fff; line-height: 1; }
+
+/* 右上：稀有度 */
+.op-card .top-right { position: absolute; top: 4px; right: 4px; }
+.op-card .rarity-icon { height: 14px; width: auto; object-fit: contain; filter: drop-shadow(0 1px 2px #000); }
+
+/* 下方漸層遮罩 */
+.op-card .bottom-mask {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 64px;
+  background: linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0) 100%);
+  pointer-events: none;
+}
+
+/* 左下：內嵌名字 */
+.op-card .inline-name {
+  position: absolute;
+  bottom: 6px; left: 7px;
+  font-size: 11px; font-weight: 600;
+  color: #f1f5f9;
+  text-shadow: 0 1px 3px #000;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1;
+}
+
+/* 右下：潛能 */
+.op-card .bottom-right { position: absolute; bottom: 1px; right: 4px; }
+.op-card .potential-icon { width: 18px; height: 18px; object-fit: contain; }
+
+/* 技能 & 模組橫排 */
+.op-card .skill-row {
+  position: absolute;
+  bottom: 26px; left: 8px; right: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 技能格 */
+.skill-wrap { position: relative; width: 32px; height: 32px; flex-shrink: 0; }
+.skill-wrap .skill-icon {
+  width: 32px; height: 32px;
+  object-fit: contain;
+  border-radius: 4px;
+  background: rgba(0,0,0,0.55);
+}
+.skill-wrap .skill-badge {
+  position: absolute;
+  top: -3px; left: -3px;
+  width: 12px; height: 12px;
+  object-fit: contain;
+}
+.skill-wrap .skill-badge-txt {
+  position: absolute;
+  top: -3px; left: -3px;
+  width: 12px; height: 12px;
+  background: #000; color: #fff;
+  font-size: 9px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 2px; line-height: 1;
+}
+
+/* 模組格 */
+.equip-wrap {
+  width: 32px; height: 32px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  background-color: rgba(0,0,0,0.55);
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+.equip-wrap.equip-overlay {
+  position: absolute;
+  bottom: 100%; left: 50%;
+  transform: translateX(-50%);
+  width: 32px; height: 32px;
+  border-radius: 4px;
+  background-size: 130%;
+  z-index: 2;
+  margin-bottom: 2px;
+}
+.equip-wrap.equip-overlay.equip-original { background-size: 24px 31px; }
+
+/* 卡片下方名稱 */
+.op-name {
+  font-size: 11px; color: #ccc;
+  text-align: center;
+  margin-top: 4px;
+  max-width: 120px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+body.light .op-name { color: #334155; }
+.op-name.hidden { display: none; }
+
+/* export status */
+#export-status { font-size: 11px; color: #64748b; }
