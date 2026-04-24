@@ -1,0 +1,5 @@
+node_modules/
+player_info_*.json
+operator_data_*.json
+*.local
+.env

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arknights Operator Info</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/cards.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+</head>
+<body>
+
+  <!-- 固定右上角工具列 -->
+  <div id="topbar">
+    <div style="position:relative;display:inline-block" id="report-menu-wrap">
+      <button class="btn-icon" id="btn-report-menu">回報作者 ▾</button>
+      <div id="report-dropdown" style="display:none;position:absolute;top:100%;right:0;margin-top:4px;background:#1e2130;border:1px solid #2d3348;border-radius:8px;padding:6px;min-width:140px;z-index:998;display:none;flex-direction:column;gap:4px;">
+        <a href="https://www.facebook.com/obeigon" target="_blank" class="btn-icon" style="display:block;text-align:left">Facebook</a>
+        <a href="https://github.com/oao519p/Arknights_OperatorInfo" target="_blank" class="btn-icon" style="display:block;text-align:left">GitHub</a>
+      </div>
+    </div>
+    <button class="btn-icon" id="btn-notice">⚠️ 注意事項</button>
+    <label class="btn-icon" style="cursor:pointer">
+      📂 直接上傳 JSON
+      <input type="file" id="btn-upload-json" accept=".json" style="display:none">
+    </label>
+    <button class="btn-icon" id="theme-toggle">🌙 深色</button>
+  </div>
+
+  <!-- 注意事項彈窗 -->
+  <div id="modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;align-items:center;justify-content:center;">
+    <div id="modal-box" style="background:#1e2130;border:1px solid #2d3348;border-radius:12px;padding:28px 32px;max-width:480px;width:90%;position:relative;">
+      <div style="font-size:16px;font-weight:700;color:#f1f5f9;margin-bottom:16px">⚠️ 注意事項</div>
+      <div style="font-size:13px;color:#94a3b8;line-height:1.8;">
+        （內容待補）
+      </div>
+      <button id="modal-close" style="margin-top:20px;width:100%" class="btn btn-ghost">關閉</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <h1>🗂️ Arknights Operator Info Card</h1>
+    <p class="subtitle">明日方舟玩家資料查詢工具 (僅支援: 簡中服 & 繁中服)</p>
+
+    <!-- ── 流程步驟 ── -->
+    <div id="setup-wrap">
+      <button id="setup-toggle" class="btn-ghost" style="margin-bottom:12px;display:flex;align-items:center;gap:6px">
+        <span id="setup-toggle-arrow">▼</span> 取得資料
+      </button>
+      <div id="setup-section">
+
+      <!-- Step 1：取得憑證 -->
+      <div class="step" id="step-cred">
+        <div class="step-header">
+          <div class="step-num">1</div>
+          <div class="step-title">取得登入憑證</div>
+        </div>
+        <div class="ctrl-row" style="margin-bottom:12px">
+          <span class="ctrl-label">平台</span>
+          <button class="btn-sm active" id="platform-skport" data-platform="skport">SKPORT（繁中服）</button>
+          <button class="btn-sm" id="platform-skland" data-platform="skland">SKLAND（簡中服）</button>
+        </div>
+        <p>在瀏覽器開啟 <a id="platform-link" href="https://www.skport.com" target="_blank" style="color:#60a5fa">SKPORT</a> 並登入，按 <kbd>F12</kbd> 開啟開發者工具，切換到 <strong>Console</strong> 分頁，貼上以下指令並按 Enter：</p>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <div class="code-block" id="cred-cmd" style="flex:1;margin:0;overflow-x:auto;white-space:nowrap">copy(localStorage.getItem('SK_OAUTH_CRED_KEY') + ',' + localStorage.getItem('SK_TOKEN_CACHE_KEY'))</div>
+          <button class="btn-icon" id="btn-copy-cmd" style="flex-shrink:0">📋 複製</button>
+        </div>
+        <p>Console 會直接輸出一行文字，複製後貼入下方（格式為 <code>cred,token</code>）：</p>
+        <div class="input-row">
+          <input type="text" id="input-cred" placeholder="貼上 cred,token …" autocomplete="off" spellcheck="false">
+          <button class="btn btn-primary" id="btn-cred">確認</button>
+        </div>
+        <div id="err-cred" class="log-error" style="display:none;font-size:12px;margin-top:6px;"></div>
+      </div>
+
+      <!-- Step 2：選擇帳號 -->
+      <div class="step collapsed" id="step-account">
+        <div class="step-header">
+          <div class="step-num">2</div>
+          <div class="step-title">選擇帳號</div>
+        </div>
+        <p>選擇要查詢的明日方舟帳號。</p>
+        <div id="err-account" class="log-error" style="display:none;font-size:12px;margin-bottom:6px;"></div>
+        <div class="account-list" id="account-list"></div>
+      </div>
+
+      <!-- Step 3：取得資料 -->
+      <div class="step collapsed" id="step-fetch">
+        <div class="step-header">
+          <div class="step-num">3</div>
+          <div class="step-title">取得幹員資料</div>
+        </div>
+        <p>點擊下方按鈕從 SKPORT API 取得幹員資料。</p>
+        <button class="btn btn-success" id="btn-fetch">獲取資料</button>
+        <div id="err-fetch" class="log-error" style="display:none;font-size:12px;margin-top:6px;"></div>
+      </div>
+
+    </div><!-- /setup-section -->
+    </div><!-- /setup-wrap -->
+
+    <!-- ── 卡片 Viewer ── -->
+    <div id="viewer-section" style="display:none">
+
+      <!-- 玩家資訊列 -->
+      <div id="player-info-bar">
+        <div class="pi-item"><span class="pi-label">UID</span><span class="pi-value" id="pi-uid">—</span></div>
+        <div class="pi-item"><span class="pi-label">名稱</span><span class="pi-value" id="pi-name">—</span></div>
+        <div class="pi-item"><span class="pi-label">伺服器</span><span class="pi-value" id="pi-channel">—</span></div>
+        <div class="pi-item"><span class="pi-label">等級</span><span class="pi-value" id="pi-level">—</span></div>
+      </div>
+
+      <!-- 控制列 -->
+      <div id="viewer-controls">
+        <!-- 職業 filter -->
+        <div class="ctrl-row">
+          <span class="ctrl-label">職業</span>
+          <div class="filter-group" id="prof-filter"></div>
+          <button class="btn-sm" id="prof-all">全選</button>
+          <button class="btn-sm" id="prof-none">取消</button>
+        </div>
+        <!-- 稀有度 filter -->
+        <div class="ctrl-row">
+          <span class="ctrl-label">稀有度</span>
+          <div class="filter-group" id="rarity-filter"></div>
+          <button class="btn-sm" id="rarity-all">全選</button>
+          <button class="btn-sm" id="rarity-none">取消</button>
+        </div>
+        <!-- 搜尋 -->
+        <div class="ctrl-row">
+          <span class="ctrl-label">搜尋</span>
+          <input type="text" id="search-input" placeholder="幹員名稱…" style="width:160px;padding:3px 8px;font-size:12px;">
+          <button class="btn-sm" id="search-clear">✕</button>
+        </div>
+        <!-- 排序 -->
+        <div class="ctrl-row">
+          <span class="ctrl-label">排序</span>
+          <button class="btn-sm active" data-sort="default">獲取時間</button>
+          <button class="btn-sm" data-sort="elite">等級 ↓</button>
+          <button class="btn-sm" data-sort="rarity">稀有度 ↓</button>
+          <button class="btn-sm" data-sort="prof">職業</button>
+        </div>
+        <!-- 技能切換 -->
+        <div class="ctrl-row">
+          <span class="ctrl-label">技能</span>
+          <button class="btn-sm active" data-skill="default">預設技能</button>
+          <button class="btn-sm" data-skill="all">全部技能</button>
+          <button class="btn-sm" data-skill="none">關閉不顯示</button>
+        </div>
+        <!-- 顯示開關 -->
+        <div class="ctrl-row">
+          <span class="ctrl-label">顯示</span>
+          <button class="btn-sm active" data-vis="rarity-bar">稀有度顏色條</button>
+          <button class="btn-sm active" data-vis="elite">精英化</button>
+          <button class="btn-sm active" data-vis="level">等級</button>
+          <button class="btn-sm active" data-vis="skill-badge">技能等級</button>
+          <button class="btn-sm active" data-vis="equip">模組</button>
+          <button class="btn-sm active" data-vis="rarity-icon">稀有度星號</button>
+          <button class="btn-sm active" data-vis="potential">潛能</button>
+        </div>
+        <!-- 名字切換 -->
+        <div class="ctrl-row">
+          <span class="ctrl-label">名字</span>
+          <button class="btn-sm" id="name-toggle">顯示在卡片下方</button>
+        </div>
+        <!-- 輸出 -->
+        <div class="ctrl-row">
+          <span class="ctrl-label">輸出</span>
+          <button class="btn-sm" id="export-html">下載 HTML</button>
+          <button class="btn-sm" id="export-cards">下載卡片圖片 (ZIP)</button>
+          <button class="btn-sm" id="export-json">下載 JSON</button>
+          <button class="btn-sm" id="export-pause" style="display:none">⏸ 暫停</button>
+          <button class="btn-sm" id="export-cancel" style="display:none">✕ 取消</button>
+          <span id="export-status"></span>
+        </div>
+        <!-- 計數 -->
+        <div class="ctrl-row">
+          <span id="count-label"></span>
+        </div>
+      </div><!-- /viewer-controls -->
+
+      <!-- 卡片輸出區 -->
+      <div id="card-output"></div>
+
+    </div><!-- /viewer-section -->
+  </div><!-- /container -->
+
+  <footer>
+    © 2026 &nbsp;｜&nbsp;
+    友站：<a href="https://www.facebook.com/TWDrMemo" target="_blank">屑博備忘錄</a>
+    &nbsp;｜&nbsp;
+    資源感謝：<a href="https://prts.wiki/w/%E9%A6%96%E9%A1%B5" target="_blank">PRTS Wiki</a>
+  </footer>
+
+  <script type="module" src="js/main.js"></script>
+
+  <!-- 主題切換（獨立，不依賴 module 載入順序）-->
+  <script>
+    document.getElementById('theme-toggle').addEventListener('click', () => {
+      const btn = document.getElementById('theme-toggle')
+      const isLight = document.body.classList.toggle('light')
+      btn.textContent = isLight ? '☀️ 淺色' : '🌙 深色'
+    })
+
+    document.getElementById('btn-copy-cmd').addEventListener('click', () => {
+      const text = document.getElementById('cred-cmd').textContent.trim()
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById('btn-copy-cmd')
+        btn.textContent = '✅ 已複製'
+        setTimeout(() => { btn.textContent = '📋 複製' }, 1500)
+      })
+    })
+
+    const PLATFORM_INFO = {
+      skport: { url: 'https://www.skport.com', label: 'SKPORT' },
+      skland: { url: 'https://www.skland.com', label: 'SKLAND' },
+    }
+    document.querySelectorAll('[data-platform]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const p = btn.dataset.platform
+        document.querySelectorAll('[data-platform]').forEach(b => b.classList.remove('active'))
+        btn.classList.add('active')
+        document.getElementById('platform-link').href  = PLATFORM_INFO[p].url
+        document.getElementById('platform-link').textContent = PLATFORM_INFO[p].label
+        if (window.setPlatform) window.setPlatform(p)
+      })
+    })
+
+    const dropdown = document.getElementById('report-dropdown')
+    document.getElementById('btn-report-menu').addEventListener('click', e => {
+      e.stopPropagation()
+      const open = dropdown.style.display === 'flex'
+      dropdown.style.display = open ? 'none' : 'flex'
+    })
+    document.addEventListener('click', () => { dropdown.style.display = 'none' })
+
+    const overlay = document.getElementById('modal-overlay')
+    document.getElementById('btn-notice').addEventListener('click', () => {
+      overlay.style.display = 'flex'
+    })
+    document.getElementById('modal-close').addEventListener('click', () => {
+      overlay.style.display = 'none'
+    })
+    overlay.addEventListener('click', e => {
+      if (e.target === overlay) overlay.style.display = 'none'
+    })
+
+    document.getElementById('setup-toggle').addEventListener('click', () => {
+      const section = document.getElementById('setup-section')
+      const arrow   = document.getElementById('setup-toggle-arrow')
+      const collapsed = section.classList.toggle('collapsed')
+      arrow.textContent = collapsed ? '▶' : '▼'
+    })
+  </script>
+
+</body>
+</html>
