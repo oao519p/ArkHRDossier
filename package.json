@@ -1,6 +1,6 @@
 {
   "name": "skport-fetch",
-  "version": "1.0.0",
+  "version": "0.1.0-beta",
   "description": "海外版森空島玩家資料抓取工具",
   "type": "module",
   "scripts": {

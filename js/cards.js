@@ -598,8 +598,56 @@ function bindEvents() {
     rerender()
   })
 
+  // ── 輸出確認彈窗 ──
+  let pendingExportFn = null
+
+  function buildExportSummary() {
+    const SORT_NAMES  = { default: '獲取時間', elite: '等級', rarity: '稀有度', prof: '職業' }
+    const SKILL_NAMES = { default: '預設技能', all: '全部技能', none: '關閉不顯示' }
+    const EQUIP_NAMES = { default: '預設模組', all: '全部模組', none: '關閉不顯示' }
+    const VIEW_NAMES  = { card: '卡片模式', table: '表格模式' }
+    const countLabel  = document.getElementById('count-label').textContent || ''
+    const lines = [
+      `檢視模式：${VIEW_NAMES[viewMode] || viewMode}`,
+      `排序：${SORT_NAMES[sortMode] || sortMode}${sortDesc ? ' ↑' : ' ↓'}`,
+    ]
+    if (viewMode === 'card') {
+      lines.push(`技能：${SKILL_NAMES[skillMode] || skillMode}`)
+      lines.push(`模組：${EQUIP_NAMES[equipMode] || equipMode}`)
+    }
+    if (countLabel) lines.push(countLabel)
+    return lines.map(l => `• ${l}`).join('<br>')
+  }
+
+  function showExportModal(onConfirm) {
+    document.getElementById('modal-export-summary').innerHTML = buildExportSummary()
+    const overlay = document.getElementById('modal-export-overlay')
+    overlay.style.display = 'flex'
+    pendingExportFn = onConfirm
+  }
+
+  document.getElementById('modal-export-confirm').addEventListener('click', () => {
+    document.getElementById('modal-export-overlay').style.display = 'none'
+    if (pendingExportFn) { pendingExportFn(); pendingExportFn = null }
+  })
+  document.getElementById('modal-export-cancel').addEventListener('click', () => {
+    document.getElementById('modal-export-overlay').style.display = 'none'
+    pendingExportFn = null
+  })
+  document.getElementById('modal-export-overlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('modal-export-overlay')) {
+      document.getElementById('modal-export-overlay').style.display = 'none'
+      pendingExportFn = null
+    }
+  })
+
   // ── 輸出 HTML ──
-  document.getElementById('export-html').addEventListener('click', async () => {
+  document.getElementById('export-html').addEventListener('click', () => {
+    if (!document.getElementById('card-output').innerHTML) return
+    showExportModal(doExportHtml)
+  })
+
+  async function doExportHtml() {
     let gridHtml = document.getElementById('card-output').innerHTML
     if (!gridHtml) return
     const loadingOverlay = document.getElementById('html-loading-overlay')
@@ -760,7 +808,7 @@ ${gridHtml}
     a.download = `operator_cards_${uid}.html`
     a.click()
     loadingOverlay.style.display = 'none'
-  })
+  }
 
   // ── 輸出 JSON ──
   document.getElementById('export-json').addEventListener('click', () => {
@@ -773,7 +821,12 @@ ${gridHtml}
   })
 
   // ── 輸出 ZIP ──
-  document.getElementById('export-cards').addEventListener('click', async () => {
+  document.getElementById('export-cards').addEventListener('click', () => {
+    if (!document.querySelectorAll('.op-card').length) return
+    showExportModal(doExportZip)
+  })
+
+  async function doExportZip() {
     const cards = [...document.querySelectorAll('.op-card')]
     if (!cards.length) return
     const statusEl  = document.getElementById('export-status')
@@ -850,7 +903,7 @@ ${gridHtml}
       a.click()
       statusEl.textContent = `完成，共 ${cards.length} 張`
     }
-  })
+  }
 
   document.getElementById('export-pause').addEventListener('click', () => {
     exportPaused = !exportPaused

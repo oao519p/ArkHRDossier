@@ -293,15 +293,17 @@ footer a:hover { text-decoration: underline; }
 body.light footer { border-color: #cbd5e1; color: #94a3b8; }
 body.light footer a { color: #2563eb; }
 
-#modal-box {
+#modal-box, #modal-export-box {
   background: #1e2130;
   border: 1px solid #2d3348;
   color: #94a3b8;
   transition: background 0.2s, border-color 0.2s, color 0.2s;
 }
-#modal-box > div:first-child { color: #f1f5f9; }
-body.light #modal-box { background: #fff; border-color: #cbd5e1; color: #64748b; }
-body.light #modal-box > div:first-child { color: #1e293b; }
+#modal-box > div:first-child, #modal-export-box > div:first-child { color: #f1f5f9; }
+body.light #modal-box, body.light #modal-export-box { background: #fff; border-color: #cbd5e1; color: #64748b; }
+body.light #modal-box > div:first-child, body.light #modal-export-box > div:first-child { color: #1e293b; }
+
+#modal-export-summary { color: inherit; }
 
 /* ── JSON 上傳錯誤提示 ── */
 #upload-error {
