@@ -188,7 +188,7 @@ body.light .op-card { background: #e2e8f0; border-color: #94a3b8; }
 }
 
 /* 技能格 */
-.skill-wrap { position: relative; width: 32px; height: 32px; flex-shrink: 0; }
+.skill-wrap { position: relative; width: 32px; height: 32px; flex-shrink: 0; overflow: visible; }
 .skill-wrap .skill-icon {
   width: 32px; height: 32px;
   object-fit: contain;
@@ -213,6 +213,7 @@ body.light .op-card { background: #e2e8f0; border-color: #94a3b8; }
 
 /* 模組格 */
 .equip-wrap {
+  position: relative;
   width: 32px; height: 32px;
   flex-shrink: 0;
   border-radius: 4px;
@@ -221,17 +222,26 @@ body.light .op-card { background: #e2e8f0; border-color: #94a3b8; }
   background-repeat: no-repeat;
   background-position: center;
 }
-.equip-wrap.equip-overlay {
+
+/* overlay 容器：絕對定位在 skill-wrap 上方，內部橫排 */
+.equip-overlay-row {
   position: absolute;
-  bottom: 100%; left: 50%;
-  transform: translateX(-50%);
-  width: 32px; height: 32px;
-  border-radius: 4px;
-  background-size: 130%;
-  z-index: 2;
+  bottom: 100%;
+  left: 0;
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
   margin-bottom: 2px;
+  z-index: 2;
 }
-.equip-wrap.equip-overlay.equip-original { background-size: 24px 31px; }
+
+/* overlay 容器內的模組格（尺寸同一般，不再需要 absolute） */
+.equip-overlay-row .equip-wrap {
+  background-size: 130%;
+}
+.equip-overlay-row .equip-wrap.equip-original {
+  background-size: 24px 31px;
+}
 
 /* 卡片下方名稱 */
 .op-name {
@@ -246,3 +256,221 @@ body.light .op-name { color: #334155; }
 
 /* export status */
 #export-status { font-size: 11px; color: #64748b; }
+
+/* ── 模組等級徽章（卡片 & 表格共用）── */
+.equip-wrap { position: relative; }
+.equip-level-badge {
+  position: absolute;
+  top: -3px; left: -3px;
+  width: 12px; height: 12px;
+  background: #1d4ed8; color: #fff;
+  font-size: 9px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 2px; line-height: 1;
+  z-index: 3;
+}
+
+/* ── 統計欄位 ── */
+#stats-bar {
+  display: none;
+  margin-bottom: 16px;
+  background: #1e2130;
+  border: 1px solid #2d3348;
+  border-radius: 12px;
+  padding: 12px 16px;
+  transition: background 0.2s, border-color 0.2s;
+}
+body.light #stats-bar { background: #fff; border-color: #cbd5e1; }
+
+#stats-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.stats-toggle-btn {
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.stats-toggle-btn:hover { color: #f1f5f9; }
+body.light .stats-toggle-btn { color: #64748b; }
+body.light .stats-toggle-btn:hover { color: #1e293b; }
+
+.stats-rarity-filter { display: flex; gap: 6px; flex-wrap: wrap; }
+
+#stats-content { margin-top: 10px; }
+#stats-content.collapsed { display: none; }
+
+.stats-grid {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+}
+
+.stats-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 48px;
+}
+.stats-num {
+  font-size: 22px;
+  font-weight: 700;
+  color: #60a5fa;
+  line-height: 1;
+}
+body.light .stats-num { color: #1d4ed8; }
+.stats-label {
+  font-size: 10px;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.stats-sep {
+  width: 1px;
+  height: 32px;
+  background: #2d3348;
+  margin: 0 4px;
+}
+body.light .stats-sep { background: #cbd5e1; }
+
+/* ── 表格模式 ── */
+#op-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  color: #cbd5e1;
+}
+body.light #op-table { color: #334155; }
+
+#op-table th {
+  text-align: left;
+  padding: 8px 6px;       /* ← 左右 padding，調小可讓欄位更緊湊 */
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  border-bottom: 1px solid #2d3348;
+  white-space: nowrap;
+}
+body.light #op-table th { border-color: #cbd5e1; color: #94a3b8; }
+
+#op-table td {
+  padding: 10px 6px;      /* ← 左右 padding，同上 */
+  border-bottom: 1px solid #1e2130;
+  vertical-align: middle;
+}
+body.light #op-table td { border-color: #f1f5f9; }
+
+#op-table tbody tr:hover { background: rgba(255,255,255,0.04); }
+body.light #op-table tbody tr:hover { background: rgba(0,0,0,0.03); }
+
+/* 欄寬控制（用 max-width 限制，讓瀏覽器自動分配剩餘空間）*/
+
+/* 頭像 */
+.tbl-avatar-cell { width: 48px; }
+.tbl-avatar {
+  width: 40px; height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+  background: #1a1a2e;
+  display: block;
+}
+body.light .tbl-avatar { background: #e2e8f0; }
+
+/* 職業 */
+.tbl-prof-wrap { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+.tbl-prof-icon { width: 20px; height: 20px; object-fit: contain; }
+
+/* 稀有度 / 精英 / 潛能 */
+.tbl-rarity-icon  { height: 14px; width: auto; object-fit: contain; display: block; }
+.tbl-elite-icon   { width: 20px; height: 20px; object-fit: contain; display: block; }
+body.light .tbl-elite-icon { filter: drop-shadow(0 0 2px rgba(0,0,0,0.5)); }
+.tbl-potential-icon { width: 20px; height: 20px; object-fit: contain; display: block; }
+
+/* 名稱欄：限制最大寬度，超出省略 */
+#op-table th:nth-child(2),
+#op-table td:nth-child(2) { max-width: 100px; }   /* ← 名稱欄最大寬，可調 */
+#op-table td:nth-child(2) {
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 職業/稀有度/精英/等級/潛能：固定窄寬 */
+#op-table th:nth-child(3),
+#op-table td:nth-child(3) { width: 80px; }         /* 職業 */
+#op-table th:nth-child(4),
+#op-table td:nth-child(4) { width: 50px; }         /* 稀有度 */
+#op-table th:nth-child(5),
+#op-table td:nth-child(5) { width: 40px; }         /* 精英 */
+#op-table th:nth-child(6),
+#op-table td:nth-child(6) { width: 40px; }         /* 等級 */
+#op-table th:nth-child(7),
+#op-table td:nth-child(7) { width: 40px; }         /* 潛能 */
+
+/* 技能欄：3 個 36px 圖 + 2 個 4px gap = 116px */
+#op-table th:nth-child(8),
+#op-table td:nth-child(8) { width: 200px; }        /* ← 技能欄寬，可調 */
+
+/* 模組欄：4 個 36px 圖 + 3 個 4px gap = 156px */
+#op-table th:nth-child(9),
+#op-table td:nth-child(9) { width: 200px; }        /* ← 模組欄寬，可調 */
+
+/* 其他欄位不換行 */
+#op-table td:not(:nth-child(2)):not(:nth-child(8)):not(:nth-child(9)) { white-space: nowrap; }
+
+/* 技能列 */
+.tbl-skill-list { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.tbl-skill-item {
+  position: relative;
+  width: 36px; height: 36px;
+  flex-shrink: 0;
+}
+.tbl-skill-icon {
+  width: 36px; height: 36px;
+  object-fit: contain;
+  border-radius: 4px;
+  background: rgba(0,0,0,0.4);
+  display: block;
+}
+.tbl-skill-badge {
+  position: absolute;
+  top: -3px; left: -3px;
+  width: 12px; height: 12px;
+  object-fit: contain;
+}
+.tbl-skill-badge-txt {
+  position: absolute;
+  top: -3px; left: -3px;
+  width: 12px; height: 12px;
+  background: #000; color: #fff;
+  font-size: 9px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 2px; line-height: 1;
+}
+
+/* 模組列 */
+.tbl-equip-list { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.tbl-equip-item {
+  position: relative;
+  width: 36px; height: 36px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  background-color: rgba(0,0,0,0.4);
+  background-size: 130%;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+.tbl-none { font-size: 12px; color: #475569; }

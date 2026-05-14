@@ -112,18 +112,66 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-upload-json').addEventListener('change', e => {
     const file = e.target.files[0]
     if (!file) return
+
+    // 檔案大小限制：50 MB
+    const MAX_SIZE = 50 * 1024 * 1024
+    if (file.size > MAX_SIZE) {
+      showUploadError(`檔案過大（${(file.size / 1024 / 1024).toFixed(1)} MB），上限為 50 MB`)
+      e.target.value = ''
+      return
+    }
+
     const reader = new FileReader()
     reader.onload = ev => {
+      let data
+      // 1. JSON 格式檢查
       try {
-        const data = JSON.parse(ev.target.result)
-        Object.values(steps).forEach(collapseStep)
-        launchViewer(data)
+        data = JSON.parse(ev.target.result)
       } catch (err) {
-        alert(`JSON 解析失敗：${err.message}`)
+        showUploadError(`JSON 格式錯誤：${err.message}`)
+        return
       }
+      // 2. 必須是 object
+      if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+        showUploadError('格式不符：JSON 根層必須是物件（{}）')
+        return
+      }
+      // 3. chars 必須存在且為陣列
+      if (!Array.isArray(data.chars)) {
+        showUploadError('格式不符：找不到 chars 陣列，請確認是否為正確的幹員資料 JSON')
+        return
+      }
+      // 4. chars 不能是空陣列
+      if (data.chars.length === 0) {
+        showUploadError('格式不符：chars 陣列為空，沒有任何幹員資料')
+        return
+      }
+
+      clearUploadError()
+      Object.values(steps).forEach(collapseStep)
+      launchViewer(data)
+    }
+    reader.onerror = () => {
+      showUploadError('檔案讀取失敗，請重試')
     }
     reader.readAsText(file)
     // 清空 value，讓同一個檔案可以重複上傳
     e.target.value = ''
   })
+
+  function showUploadError(msg) {
+    let el = document.getElementById('upload-error')
+    if (!el) {
+      el = document.createElement('div')
+      el.id = 'upload-error'
+      document.body.appendChild(el)
+    }
+    el.textContent = '⚠️ ' + msg
+    el.style.display = 'block'
+  }
+
+  function clearUploadError() {
+    const el = document.getElementById('upload-error')
+    if (el) el.style.display = 'none'
+  }
 })

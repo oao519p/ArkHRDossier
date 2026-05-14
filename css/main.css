@@ -298,6 +298,30 @@ body.light #modal-box { background: #fff; border-color: #cbd5e1; }
 body.light #modal-box div[style*="color:#f1f5f9"] { color: #1e293b !important; }
 body.light #modal-box div[style*="color:#94a3b8"] { color: #64748b !important; }
 
+/* ── JSON 上傳錯誤提示 ── */
+#upload-error {
+  display: none;
+  position: fixed;
+  top: 52px;
+  right: 16px;
+  z-index: 998;
+  max-width: 320px;
+  padding: 8px 12px;
+  background: #2d1515;
+  border: 1px solid #f87171;
+  border-radius: 8px;
+  color: #f87171;
+  font-size: 12px;
+  line-height: 1.5;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+body.light #upload-error {
+  background: #fff5f5;
+  border-color: #f87171;
+  color: #dc2626;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
 kbd {
   background: #1e293b;
   border: 1px solid #475569;

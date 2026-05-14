@@ -39,18 +39,20 @@ const SORT_LABELS = {
 // ── 狀態 ──
 let gData          = null
 let skillMode      = 'default'
+let equipMode      = 'default'
+let viewMode       = 'card'
 let sortMode       = 'default'
 let sortDesc       = false
 let searchQuery    = ''
 let nameInline     = false
 let exportPaused   = false
 let exportCancelled = false
+let statsRarity    = 'all'
 const visFlags = {
   'rarity-bar':  true,
   'elite':       true,
   'level':       true,
   'skill-badge': true,
-  'equip':       true,
   'rarity-icon': true,
   'potential':   true,
 }
@@ -67,8 +69,31 @@ function skinIdToUrl(skinId) {
   return `https://torappu.prts.wiki/assets/char_portrait/${converted}.png`
 }
 
-const rarityIconUrl = r  => `https://torappu.prts.wiki/assets/rarity_icon/rarity_${r}.png`
-const profIconUrl   = p  => `https://torappu.prts.wiki/assets/profession_large_icon/icon_profession_${p.toLowerCase()}_large.png`
+function avatarIdToUrl(skinId) {
+  if (!skinId) return ''
+  let converted
+  if (skinId.includes('@')) {
+    // 換裝皮膚：@ → _，# 後面的編號待確認，暫時保留 %23 規則
+    converted = skinId.replace('@', '_').replace(/#/g, '%23')
+  } else {
+    // 預設皮膚：直接去掉 #數字（char_avatar 不含編號）
+    converted = skinId.replace(/#\d+$/, '')
+  }
+  return `https://torappu.prts.wiki/assets/char_avatar/${converted}.png`
+}
+
+// 取出已解鎖模組：排除 uniequip_001_* 且 locked === false，依 id 排序
+function getUnlockedEquips(char) {
+  if (!char.equip || !Array.isArray(char.equip)) return []
+  return char.equip
+    .filter(e => !e.id.startsWith('uniequip_001_') && e.locked === false)
+    .sort((a, b) => a.id < b.id ? -1 : 1)
+}
+
+const rarityIconUrl      = r => `https://torappu.prts.wiki/assets/rarity_icon/rarity_${r}.png`
+const rarityIconUrlLight = r => `https://torappu.prts.wiki/assets/rarity_icon/rarity_${r}_black.png`
+const profIconUrl        = p => `https://torappu.prts.wiki/assets/profession_large_icon/icon_profession_${p.toLowerCase()}_large.png`
+const profIconUrlLight   = p => `https://torappu.prts.wiki/assets/profession_large_icon/icon_profession_${p.toLowerCase()}_large_white.png`
 const eliteIconUrl  = e  => `https://torappu.prts.wiki/assets/elite_icon/elite_${e}_large.png`
 const potentialUrl  = r  => `https://torappu.prts.wiki/assets/potential_icon/potential_${r}.png`
 const skillIconUrl  = id => {
@@ -148,7 +173,11 @@ function rerender() {
   if (!gData) return
   const allowedProfs    = new Set(getChecked('prof-filter'))
   const allowedRarities = new Set(getChecked('rarity-filter').map(Number))
-  renderGrid(gData, allowedProfs, allowedRarities, searchQuery, sortMode)
+  if (viewMode === 'table') {
+    renderTable(gData, allowedProfs, allowedRarities, searchQuery, sortMode, sortDesc)
+  } else {
+    renderGrid(gData, allowedProfs, allowedRarities, searchQuery, sortMode)
+  }
 }
 
 // ── renderGrid ──
@@ -159,6 +188,7 @@ function renderGrid(data, allowedProfs, allowedRarities, searchQuery, sortMode) 
   const chars        = data.chars        || []
   const charInfoMap  = data.charInfoMap  || {}
   const equipInfoMap = data.equipmentInfoMap || data.equipInfoMap || {}
+  if (!data.equipmentInfoMap && !data.equipInfoMap) console.warn('[cards] equipInfoMap 不存在，模組圖示將無法顯示')
 
   const q = (searchQuery || '').trim().toLowerCase()
   let filtered = chars.filter(c => {
@@ -206,10 +236,11 @@ function renderGrid(data, allowedProfs, allowedRarities, searchQuery, sortMode) 
     const prof   = info.profession || 'PIONEER'
     shown++
 
-    const defaultSkillId = c.defaultSkillId || ''
-    const defaultEquipId = c.defaultEquipId || ''
-    const equipInfo      = equipInfoMap[defaultEquipId] || {}
-    const typeIcon       = equipInfo.typeIcon || ''
+    const defaultSkillId  = c.defaultSkillId || ''
+    const defaultEquipId  = c.defaultEquipId || ''
+    const equipInfo       = equipInfoMap[defaultEquipId] || {}
+    const typeIcon        = equipInfo.typeIcon || ''
+    const unlockedEquips  = getUnlockedEquips(c)
 
     const mainSkillLvl = c.mainSkillLvl || 0
     let specLevel = 0
@@ -260,53 +291,99 @@ function renderGrid(data, allowedProfs, allowedRarities, searchQuery, sortMode) 
     mask.className = 'bottom-mask'
     card.appendChild(mask)
 
-    // 技能 & 模組
+    // ── 技能 & 模組 ──
     const skillRow = document.createElement('div')
     skillRow.className = 'skill-row'
 
-    function mkEquipWrap(overlay) {
-      if (!typeIcon) return null
+    // 建立單一模組 wrap（inline 用，不含 overlay 定位）
+    function mkEquipWrapById(equipId) {
+      const ei = equipInfoMap[equipId] || {}
+      const ti = ei.typeIcon || ''
+      if (!ti) return null
       const ew = document.createElement('div')
-      ew.className = overlay
-        ? `equip-wrap equip-overlay${typeIcon === 'original' ? ' equip-original' : ''}`
-        : 'equip-wrap'
-      ew.style.backgroundImage = `url('${equipIconUrl(typeIcon)}')`
-      if (!overlay) ew.style.backgroundSize = typeIcon === 'original' ? '24px 31px' : '130%'
+      ew.className = `equip-wrap${ti === 'original' ? ' equip-original' : ''}`
+      ew.style.backgroundImage = `url('${equipIconUrl(ti)}')`
+      ew.style.backgroundSize = ti === 'original' ? '24px 31px' : '130%'
+      const equipObj = (c.equip || []).find(e => e.id === equipId)
+      if (equipObj && equipObj.level) {
+        const lvBadge = document.createElement('div')
+        lvBadge.className = 'equip-level-badge'
+        lvBadge.textContent = equipObj.level
+        ew.appendChild(lvBadge)
+      }
       return ew
     }
 
-    if (skillMode === 'none') {
-      // 不渲染 skill-row
-    } else if (skillMode !== 'all') {
-      const sw = document.createElement('div')
-      sw.className = 'skill-wrap'
-      sw.appendChild(mkImg(skillIconUrl(defaultSkillId), 'skill-icon', defaultSkillId || null))
-      if (defaultSkillId && visFlags['skill-badge']) {
-        if (specLevel >= 1) {
-          sw.appendChild(mkImg(specIconUrl(specLevel), 'skill-badge'))
-        } else {
-          const badge = document.createElement('div')
-          badge.className = 'skill-badge-txt'
-          badge.textContent = mainSkillLvl || ''
-          sw.appendChild(badge)
+    // 建立 overlay 容器（橫排，絕對定位在 skill-wrap 上方）
+    function mkOverlayRow(equipIds) {
+      if (!equipIds.length) return null
+      const row = document.createElement('div')
+      row.className = 'equip-overlay-row'
+      equipIds.forEach(id => {
+        const ew = mkEquipWrapById(id)
+        if (ew) row.appendChild(ew)
+      })
+      return row.children.length ? row : null
+    }
+
+    // ── 技能 & 模組排版邏輯 ──
+    //
+    // 技能關閉：模組全部 inline 靠左往右排
+    // 技能預設 + 模組預設：[技能][模組] inline，最多 2 格
+    // 技能預設 + 模組全部：inline 最多 [技能][模組1][模組2]（共 3 格），
+    //                      超出的模組 overlay 在技能上方往右長
+    // 技能全部 + 模組預設：預設模組 overlay 在第一個技能上方
+    // 技能全部 + 模組全部：全部模組 overlay 在第一個技能上方
+
+    // 取得要 overlay 的模組清單
+    function getOverlayEquips() {
+      if (skillMode === 'none' || equipMode === 'none') return []
+      if (skillMode === 'all') {
+        // 全部技能：不管模組 default/all，都 overlay
+        if (equipMode === 'default') {
+          const isUnlocked = unlockedEquips.some(e => e.id === defaultEquipId)
+          return isUnlocked ? [{ id: defaultEquipId }] : []
         }
+        return unlockedEquips
       }
-      skillRow.appendChild(sw)
-      if (visFlags['equip']) {
-        const ew = mkEquipWrap(false)
-        if (ew) skillRow.appendChild(ew)
+      // 預設技能 + 全部模組：超過 2 個 inline 格（1技能+2模組=3格）的模組 overlay
+      if (skillMode === 'default' && equipMode === 'all') {
+        return unlockedEquips.slice(2) // 前 2 個 inline，其餘 overlay
       }
-    } else {
-      const skills = (c.skills && c.skills.length) ? c.skills : []
-      skills.forEach((sk, idx) => {
+      return []
+    }
+
+    // 取得要 inline 的模組清單
+    function getInlineEquips() {
+      if (equipMode === 'none') return []
+      if (skillMode === 'none') {
+        // 技能關閉：全部模組 inline
+        return equipMode === 'default'
+          ? (unlockedEquips.some(e => e.id === defaultEquipId) ? [{ id: defaultEquipId }] : [])
+          : unlockedEquips
+      }
+      if (skillMode === 'all') return [] // 全部技能時模組走 overlay
+      // 預設技能
+      if (equipMode === 'default') {
+        const isUnlocked = unlockedEquips.some(e => e.id === defaultEquipId)
+        return isUnlocked ? [{ id: defaultEquipId }] : []
+      }
+      // 預設技能 + 全部模組：前 2 個 inline
+      return unlockedEquips.slice(0, 2)
+    }
+
+    const overlayEquips = getOverlayEquips()
+    const inlineEquips  = getInlineEquips()
+
+    // ── 技能渲染 ──
+    if (skillMode !== 'none') {
+      if (skillMode === 'default') {
         const sw = document.createElement('div')
         sw.className = 'skill-wrap'
-        sw.style.position = 'relative'
-        sw.appendChild(mkImg(skillIconUrl(sk.id), 'skill-icon', sk.id))
-        const skSpec = sk.specializeLevel || 0
-        if (visFlags['skill-badge']) {
-          if (skSpec >= 1) {
-            sw.appendChild(mkImg(specIconUrl(skSpec), 'skill-badge'))
+        sw.appendChild(mkImg(skillIconUrl(defaultSkillId), 'skill-icon', defaultSkillId || null))
+        if (defaultSkillId && visFlags['skill-badge']) {
+          if (specLevel >= 1) {
+            sw.appendChild(mkImg(specIconUrl(specLevel), 'skill-badge'))
           } else {
             const badge = document.createElement('div')
             badge.className = 'skill-badge-txt'
@@ -314,23 +391,54 @@ function renderGrid(data, allowedProfs, allowedRarities, searchQuery, sortMode) 
             sw.appendChild(badge)
           }
         }
-        if (idx === 0 && visFlags['equip']) {
-          const ew = mkEquipWrap(true)
-          if (ew) sw.appendChild(ew)
+        // overlay 容器掛在此技能上
+        const oRow = mkOverlayRow(overlayEquips.map(e => e.id))
+        if (oRow) sw.appendChild(oRow)
+        skillRow.appendChild(sw)
+      } else {
+        // all 技能
+        const skills = (c.skills && c.skills.length) ? c.skills : []
+        skills.forEach((sk, idx) => {
+          const sw = document.createElement('div')
+          sw.className = 'skill-wrap'
+          sw.appendChild(mkImg(skillIconUrl(sk.id), 'skill-icon', sk.id))
+          const skSpec = sk.specializeLevel || 0
+          if (visFlags['skill-badge']) {
+            if (skSpec >= 1) {
+              sw.appendChild(mkImg(specIconUrl(skSpec), 'skill-badge'))
+            } else {
+              const badge = document.createElement('div')
+              badge.className = 'skill-badge-txt'
+              badge.textContent = mainSkillLvl || ''
+              sw.appendChild(badge)
+            }
+          }
+          // overlay 容器掛在第一個技能上
+          if (idx === 0) {
+            const oRow = mkOverlayRow(overlayEquips.map(e => e.id))
+            if (oRow) sw.appendChild(oRow)
+          }
+          skillRow.appendChild(sw)
+        })
+        if (!skills.length) {
+          const sw = document.createElement('div')
+          sw.className = 'skill-wrap'
+          sw.appendChild(mkImg(SKILL_NONE, 'skill-icon'))
+          const oRow = mkOverlayRow(overlayEquips.map(e => e.id))
+          if (oRow) sw.appendChild(oRow)
+          skillRow.appendChild(sw)
         }
-        skillRow.appendChild(sw)
-      })
-      if (!skills.length) {
-        const sw = document.createElement('div')
-        sw.className = 'skill-wrap'
-        sw.appendChild(mkImg(SKILL_NONE, 'skill-icon'))
-        const ew = mkEquipWrap(true)
-        if (ew) sw.appendChild(ew)
-        skillRow.appendChild(sw)
       }
     }
 
-    if (skillMode !== 'none') card.appendChild(skillRow)
+    // ── 模組 inline 渲染 ──
+    inlineEquips.forEach(eq => {
+      const ew = mkEquipWrapById(eq.id)
+      if (ew) skillRow.appendChild(ew)
+    })
+
+    // skill-row 有內容才加入卡片
+    if (skillRow.children.length > 0) card.appendChild(skillRow)
 
     if (nameInline) {
       const inName = document.createElement('div')
@@ -397,6 +505,7 @@ function showPlayerInfo(data) {
   document.getElementById('pi-channel').textContent = meta.channelName || '—'
   document.getElementById('pi-level').textContent   = status.level    || '—'
   document.getElementById('player-info-bar').style.display = 'flex'
+  document.getElementById('stats-bar').style.display = 'block'
 }
 
 function getPlayerUid() {
@@ -496,27 +605,149 @@ function bindEvents() {
     const name    = document.getElementById('pi-name').textContent
     const channel = document.getElementById('pi-channel').textContent
     const level   = document.getElementById('pi-level').textContent
+
     const playerBar = `<div id="player-info-bar" style="display:flex">
   <div class="pi-item"><span class="pi-label">UID</span><span class="pi-value">${uid}</span></div>
   <div class="pi-item"><span class="pi-label">名稱</span><span class="pi-value">${name}</span></div>
   <div class="pi-item"><span class="pi-label">伺服器</span><span class="pi-value">${channel}</span></div>
   <div class="pi-item"><span class="pi-label">等級</span><span class="pi-value">${level}</span></div>
 </div>`
+
+    // 統計欄位（快照全部 + 六/五/四星各組）
+    const statsHtml = (() => {
+      const ids     = ['stat-e2','stat-sp3','stat-sp2','stat-sp1','stat-mod3','stat-mod2','stat-mod1']
+      const labels  = ['精二','技能專三','技能專二','技能專一','模組 Lv3','模組 Lv2','模組 Lv1']
+      const chars   = gData?.chars || []
+      const infoMap = gData?.charInfoMap || {}
+
+      function calcGroup(rarityFilter) {
+        const list = rarityFilter === 'all' ? chars
+          : chars.filter(c => {
+              const info = infoMap[c.charId] || {}
+              return (info.rarity ?? c.rarity ?? 0) === Number(rarityFilter)
+            })
+        let e2=0,sp3=0,sp2=0,sp1=0,mod3=0,mod2=0,mod1=0
+        list.forEach(c => {
+          if (c.evolvePhase === 2) e2++
+          ;(c.skills||[]).forEach(sk => {
+            const lv = sk.specializeLevel||0
+            if (lv===3) sp3++; else if (lv===2) sp2++; else if (lv===1) sp1++
+          })
+          ;(c.equip||[]).filter(e=>!e.id.startsWith('uniequip_001_')&&e.locked===false).forEach(eq=>{
+            if (eq.level===3) mod3++; else if (eq.level===2) mod2++; else if (eq.level===1) mod1++
+          })
+        })
+        return [e2,sp3,sp2,sp1,mod3,mod2,mod1]
+      }
+
+      const isLight = document.body.classList.contains('light')
+      const clr = {
+        bg:      isLight ? '#ffffff'  : '#1e2130',
+        border:  isLight ? '#cbd5e1'  : '#2d3348',
+        sep:     isLight ? '#cbd5e1'  : '#2d3348',
+        title:   isLight ? '#64748b'  : '#94a3b8',
+        label:   isLight ? '#64748b'  : '#64748b',
+        num:     isLight ? '#1d4ed8'  : '#60a5fa',
+        grpBdr:  isLight ? '#cbd5e1'  : '#2d3348',
+      }
+
+      function mkGroup(title, vals) {
+        const sep = `<div style="width:1px;height:32px;background:${clr.sep};margin:0 4px;flex-shrink:0"></div>`
+        const items = vals.map((v,i) => {
+          const needSep = (i===1||i===4) ? sep : ''
+          return needSep + `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:44px"><span style="font-size:18px;font-weight:700;color:${clr.num};line-height:1">${v}</span><span style="font-size:10px;color:${clr.label};white-space:nowrap">${labels[i]}</span></div>`
+        }).join('')
+        return `<div style="display:flex;flex-direction:column;align-items:flex-start;padding:0 12px 0 0;border-right:1px solid ${clr.grpBdr};margin-right:12px;flex-shrink:0">
+  <div style="font-size:10px;color:${clr.title};margin-bottom:6px;font-weight:600">${title}</div>
+  <div style="display:flex;align-items:center;gap:6px 10px;flex-wrap:wrap">${items}</div>
+</div>`
+      }
+
+      const groups = [
+        mkGroup('全部',    calcGroup('all')),
+        mkGroup('六星 ★6', calcGroup('5')),
+        mkGroup('五星 ★5', calcGroup('4')),
+        mkGroup('四星 ★4', calcGroup('3')),
+      ]
+      return `<div style="display:block;margin-bottom:16px;background:${clr.bg};border:1px solid ${clr.border};border-radius:12px;padding:12px 16px">
+  <div style="font-size:12px;font-weight:600;color:${clr.title};margin-bottom:10px">數據統計</div>
+  <div style="display:flex;align-items:flex-start;flex-wrap:wrap;gap:8px">
+    ${groups.join('')}
+  </div>
+</div>`
+    })()
+
     const cssLinks = [...document.querySelectorAll('link[rel=stylesheet]')]
       .map(l => `<link rel="stylesheet" href="${l.href}">`)
       .join('\n')
     const bodyClass = document.body.className
     const bgColor   = bodyClass.includes('light') ? '#f1f5f9' : '#111'
+    // 表格模式：把幹員拆成兩半，並排兩欄輸出
+    if (viewMode === 'table') {
+      const parser = new DOMParser()
+      const doc = parser.parseFromString(gridHtml, 'text/html')
+      const origTable = doc.querySelector('#op-table')
+      if (origTable) {
+        const thead = origTable.querySelector('thead')
+        const rows  = [...origTable.querySelectorAll('tbody tr')]
+        const half  = Math.ceil(rows.length / 2)
+        const left  = rows.slice(0, half)
+        const right = rows.slice(half)
+
+        function buildTable(rowList) {
+          const t = document.createElement('table')
+          t.id = 'op-table'
+          t.style.cssText = 'width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed'
+          if (thead) t.appendChild(thead.cloneNode(true))
+          const tb = document.createElement('tbody')
+          rowList.forEach(r => tb.appendChild(r.cloneNode(true)))
+          t.appendChild(tb)
+          return t.outerHTML
+        }
+
+        gridHtml = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
+  <div>${buildTable(left)}</div>
+  <div>${buildTable(right)}</div>
+</div>`
+      }
+    }
+
     gridHtml = await inlineLocalImages(gridHtml)
+
+    // 表格模式：補上欄寬與間距（!important 確保覆蓋外部 CSS）
+    const tableFixStyle = viewMode === 'table' ? `
+<style>
+  #op-table { table-layout: fixed !important; }
+  #op-table th { padding: 8px 4px !important; font-size: 11px !important; white-space: nowrap !important; }
+  #op-table td { padding: 8px 4px !important; }
+  #op-table th:nth-child(1), #op-table td:nth-child(1) { width: 44px !important; }
+  #op-table th:nth-child(2), #op-table td:nth-child(2) { width: 78px !important; overflow:hidden !important; text-overflow:ellipsis !important; white-space:nowrap !important; }
+  #op-table th:nth-child(3), #op-table td:nth-child(3) { width: 70px !important; }
+  #op-table th:nth-child(4), #op-table td:nth-child(4) { width: 44px !important; }
+  #op-table th:nth-child(5), #op-table td:nth-child(5) { width: 40px !important; }
+  #op-table th:nth-child(6), #op-table td:nth-child(6) { width: 36px !important; }
+  #op-table th:nth-child(7), #op-table td:nth-child(7) { width: 40px !important; }
+  #op-table th:nth-child(8), #op-table td:nth-child(8) { width: 120px !important; }
+  #op-table th:nth-child(9), #op-table td:nth-child(9) { width: 160px !important; }
+  #op-table td:not(:nth-child(2)):not(:nth-child(8)):not(:nth-child(9)) { white-space: nowrap !important; }
+  .tbl-avatar { width: 36px !important; height: 36px !important; }
+  .tbl-skill-item { width: 36px !important; height: 36px !important; }
+  .tbl-skill-icon { width: 36px !important; height: 36px !important; }
+  .tbl-equip-item { width: 36px !important; height: 36px !important; }
+  .tbl-skill-list, .tbl-equip-list { gap: 4px !important; flex-wrap: wrap !important; }
+</style>` : ''
+
     const html = `<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
 <title>幹員卡片 - ${name} (${uid})</title>
 ${cssLinks}
+${tableFixStyle}
 </head>
 <body class="${bodyClass}" style="background:${bgColor};padding:20px;">
 ${playerBar}
+${statsHtml}
 ${gridHtml}
 </body>
 </html>`
@@ -617,6 +848,265 @@ ${gridHtml}
     exportCancelled = true
     exportPaused    = false
   })
+
+  // 檢視模式切換
+  document.querySelectorAll('[data-view]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      viewMode = btn.dataset.view
+      document.querySelectorAll('[data-view]').forEach(b => b.classList.remove('active'))
+      btn.classList.add('active')
+      // 卡片模式才顯示的控制列
+      const cardOnly = ['skill-mode-row', 'equip-mode-row', 'vis-row', 'name-row']
+      cardOnly.forEach(id => {
+        const el = document.getElementById(id)
+        if (el) el.style.display = viewMode === 'card' ? '' : 'none'
+      })
+      rerender()
+    })
+  })
+
+  // 模組切換（卡片模式）
+  document.querySelectorAll('[data-equip]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      equipMode = btn.dataset.equip
+      document.querySelectorAll('[data-equip]').forEach(b => b.classList.remove('active'))
+      btn.classList.add('active')
+      rerender()
+    })
+  })
+
+  // 統計稀有度篩選
+  document.querySelectorAll('[data-stats-rarity]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      statsRarity = btn.dataset.statsRarity
+      document.querySelectorAll('[data-stats-rarity]').forEach(b => b.classList.remove('active'))
+      btn.classList.add('active')
+      buildStats(gData)
+    })
+  })
+}
+
+// ── renderTable ──
+function renderTable(data, allowedProfs, allowedRarities, searchQuery, sortMode, sortDesc) {
+  const out = document.getElementById('card-output')
+  out.innerHTML = ''
+
+  const chars        = data.chars        || []
+  const charInfoMap  = data.charInfoMap  || {}
+  const equipInfoMap = data.equipmentInfoMap || data.equipInfoMap || {}
+  if (!data.equipmentInfoMap && !data.equipInfoMap) console.warn('[cards] equipInfoMap 不存在，模組圖示將無法顯示')
+
+  const isLight   = document.body.classList.contains('light')
+  const _rarityUrl = isLight ? rarityIconUrlLight : rarityIconUrl
+  const _profUrl   = isLight ? profIconUrlLight   : profIconUrl
+
+  const q = (searchQuery || '').trim().toLowerCase()
+  const filtered = chars.filter(c => {
+    const info   = charInfoMap[c.charId] || {}
+    const rarity = info.rarity ?? c.rarity ?? 0
+    const prof   = info.profession || 'PIONEER'
+    if (!allowedProfs.has(prof))      return false
+    if (!allowedRarities.has(rarity)) return false
+    if (q) {
+      const name = (info.name || c.charId).toLowerCase()
+      if (!name.includes(q)) return false
+    }
+    return true
+  })
+
+  // ── 排序（與 renderGrid 相同邏輯）──
+  const d = sortDesc ? -1 : 1
+  const origIndex = new Map(chars.map((c, i) => [c.charId + c.skinId, i]))
+  filtered.sort((a, b) => {
+    const ia = charInfoMap[a.charId] || {}
+    const ib = charInfoMap[b.charId] || {}
+    if (sortMode === 'default') {
+      return ((origIndex.get(a.charId + a.skinId) ?? 0) - (origIndex.get(b.charId + b.skinId) ?? 0)) * d
+    }
+    if (sortMode === 'rarity') {
+      return ((ib.rarity ?? b.rarity ?? 0) - (ia.rarity ?? a.rarity ?? 0)) * d
+    }
+    if (sortMode === 'prof') {
+      const pa = PROF_ORDER.indexOf(ia.profession || 'PIONEER')
+      const pb = PROF_ORDER.indexOf(ib.profession || 'PIONEER')
+      if (pa !== pb) return (pa - pb) * d
+      if (b.evolvePhase !== a.evolvePhase) return b.evolvePhase - a.evolvePhase
+      return b.level - a.level
+    }
+    // elite（等級）
+    if (b.evolvePhase !== a.evolvePhase) return (b.evolvePhase - a.evolvePhase) * d
+    return (b.level - a.level) * d
+  })
+
+  const table = document.createElement('table')
+  table.id = 'op-table'
+
+  // 表頭
+  const thead = document.createElement('thead')
+  thead.innerHTML = `<tr>
+    <th>頭像</th>
+    <th>名稱</th>
+    <th>職業</th>
+    <th>稀有度</th>
+    <th>精英</th>
+    <th>等級</th>
+    <th>潛能</th>
+    <th>技能</th>
+    <th>模組</th>
+  </tr>`
+  table.appendChild(thead)
+
+  const tbody = document.createElement('tbody')
+  filtered.forEach(c => {
+    const info   = charInfoMap[c.charId] || {}
+    const rarity = info.rarity ?? c.rarity ?? 0
+    const prof   = info.profession || 'PIONEER'
+    const unlockedEquips = getUnlockedEquips(c)
+
+    const tr = document.createElement('tr')
+
+    // 頭像
+    const tdAvatar = document.createElement('td')
+    tdAvatar.className = 'tbl-avatar-cell'
+    tdAvatar.appendChild(mkImg(avatarIdToUrl(c.skinId), 'tbl-avatar'))
+    tr.appendChild(tdAvatar)
+
+    // 名稱
+    const tdName = document.createElement('td')
+    tdName.textContent = info.name || c.charId
+    tr.appendChild(tdName)
+
+    // 職業
+    const tdProf = document.createElement('td')
+    const profWrap = document.createElement('div')
+    profWrap.className = 'tbl-prof-wrap'
+    profWrap.appendChild(mkImg(_profUrl(prof), 'tbl-prof-icon'))
+    const profLabel = document.createElement('span')
+    profLabel.textContent = PROF_LABELS[prof] || prof
+    profWrap.appendChild(profLabel)
+    tdProf.appendChild(profWrap)
+    tr.appendChild(tdProf)
+
+    // 稀有度
+    const tdRarity = document.createElement('td')
+    tdRarity.appendChild(mkImg(_rarityUrl(rarity), 'tbl-rarity-icon'))
+    tr.appendChild(tdRarity)
+
+    // 精英
+    const tdElite = document.createElement('td')
+    tdElite.appendChild(mkImg(eliteIconUrl(c.evolvePhase), 'tbl-elite-icon'))
+    tr.appendChild(tdElite)
+
+    // 等級
+    const tdLevel = document.createElement('td')
+    tdLevel.textContent = c.level
+    tr.appendChild(tdLevel)
+
+    // 潛能
+    const tdPotential = document.createElement('td')
+    tdPotential.appendChild(mkImg(potentialUrl(c.potentialRank), 'tbl-potential-icon'))
+    tr.appendChild(tdPotential)
+
+    // 技能（全部）
+    const tdSkills = document.createElement('td')
+    const skillList = document.createElement('div')
+    skillList.className = 'tbl-skill-list'
+    const skills = c.skills || []
+    if (skills.length) {
+      skills.forEach(sk => {
+        const sw = document.createElement('div')
+        sw.className = 'tbl-skill-item'
+        sw.appendChild(mkImg(skillIconUrl(sk.id), 'tbl-skill-icon', sk.id))
+        const specLv = sk.specializeLevel || 0
+        if (specLv >= 1) {
+          sw.appendChild(mkImg(specIconUrl(specLv), 'tbl-skill-badge'))
+        } else {
+          const badge = document.createElement('div')
+          badge.className = 'tbl-skill-badge-txt'
+          badge.textContent = c.mainSkillLvl || ''
+          sw.appendChild(badge)
+        }
+        skillList.appendChild(sw)
+      })
+    } else {
+      skillList.appendChild(mkImg(SKILL_NONE, 'tbl-skill-icon'))
+    }
+    tdSkills.appendChild(skillList)
+    tr.appendChild(tdSkills)
+
+    // 模組（全部已解鎖）
+    const tdEquip = document.createElement('td')
+    const equipList = document.createElement('div')
+    equipList.className = 'tbl-equip-list'
+    if (unlockedEquips.length) {
+      unlockedEquips.forEach(eq => {
+        const ei = equipInfoMap[eq.id] || {}
+        const ti = ei.typeIcon || ''
+        if (!ti) return
+        const ew = document.createElement('div')
+        ew.className = 'tbl-equip-item'
+        ew.style.backgroundImage = `url('${equipIconUrl(ti)}')`
+        const lvBadge = document.createElement('div')
+        lvBadge.className = 'equip-level-badge'
+        lvBadge.textContent = eq.level
+        ew.appendChild(lvBadge)
+        equipList.appendChild(ew)
+      })
+    } else {
+      const none = document.createElement('span')
+      none.className = 'tbl-none'
+      none.textContent = '—'
+      equipList.appendChild(none)
+    }
+    tdEquip.appendChild(equipList)
+    tr.appendChild(tdEquip)
+
+    tbody.appendChild(tr)
+  })
+
+  table.appendChild(tbody)
+  out.appendChild(table)
+  document.getElementById('count-label').textContent = `顯示 ${filtered.length} / ${chars.length} 位幹員`
+}
+
+// ── buildStats ──
+function buildStats(data) {
+  if (!data) return
+  const chars       = data.chars       || []
+  const charInfoMap = data.charInfoMap || {}
+
+  const filtered = statsRarity === 'all'
+    ? chars
+    : chars.filter(c => {
+        const info   = charInfoMap[c.charId] || {}
+        const rarity = info.rarity ?? c.rarity ?? 0
+        return rarity === Number(statsRarity)
+      })
+
+  let e2 = 0, sp3 = 0, sp2 = 0, sp1 = 0, mod3 = 0, mod2 = 0, mod1 = 0
+
+  filtered.forEach(c => {
+    if (c.evolvePhase === 2) e2++
+    ;(c.skills || []).forEach(sk => {
+      const lv = sk.specializeLevel || 0
+      if (lv === 3) sp3++
+      else if (lv === 2) sp2++
+      else if (lv === 1) sp1++
+    })
+    ;(c.equip || []).filter(e => !e.id.startsWith('uniequip_001_') && e.locked === false).forEach(eq => {
+      if (eq.level === 3) mod3++
+      else if (eq.level === 2) mod2++
+      else if (eq.level === 1) mod1++
+    })
+  })
+
+  document.getElementById('stat-e2').textContent   = e2
+  document.getElementById('stat-sp3').textContent  = sp3
+  document.getElementById('stat-sp2').textContent  = sp2
+  document.getElementById('stat-sp1').textContent  = sp1
+  document.getElementById('stat-mod3').textContent = mod3
+  document.getElementById('stat-mod2').textContent = mod2
+  document.getElementById('stat-mod1').textContent = mod1
 }
 
 let eventsBound = false
@@ -624,8 +1114,10 @@ let eventsBound = false
 // ── initViewer（供 main.js 呼叫）──
 export function initViewer(data) {
   gData = data
+  window.__rerender = rerender  // 供主題切換呼叫
   showPlayerInfo(data)
   buildFilters(data)
+  buildStats(data)
   sortDesc = false
   updateSortBtns()
   rerender()
