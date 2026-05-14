@@ -10,12 +10,15 @@
 
 - 透過 SKPORT / SKLAND API 取得玩家幹員資料
 - 或直接上傳本地 JSON 檔案
-- 幹員卡片視覺化展示，包含：
-  - 精英化、等級、潛能、技能、模組
-  - 職業 / 稀有度篩選
-  - 搜尋、排序
-  - 深色 / 淺色模式
-- 輸出：下載 HTML、下載卡片圖片 ZIP、下載 JSON
+- **卡片模式**：幹員半身像卡片，包含精英化、等級、潛能、技能、模組
+  - 模組切換：預設模組 / 全部模組 / 關閉不顯示
+- **表格模式**：完整資訊列表，顯示全部技能與模組
+- **數據統計欄位**：精二 / 技能專三/二/一 / 模組 Lv1-3，支援六/五/四星篩選
+- 職業 / 稀有度篩選、搜尋、排序
+- 深色 / 淺色模式
+- 輸出：下載 HTML（含統計）、下載卡片圖片 ZIP、下載 JSON
+
+> ⚠️ 僅支援電腦版瀏覽器，手機版功能可能無法正常使用
 
 ---
 
@@ -62,9 +65,10 @@ copy(localStorage.getItem('SK_OAUTH_CRED_KEY') + ',' + localStorage.getItem('SK_
 ## 檔案結構
 
 ```
-skport-fetch/
+Arknights_OperatorInfo/
 ├── index.html        # 主頁面
 ├── serve.js          # 本地開發 HTTP server
+├── fetch_skport.js   # Node.js CLI 資料抓取腳本
 ├── package.json
 ├── css/
 │   ├── main.css      # 流程步驟、topbar 樣式
