@@ -293,10 +293,15 @@ footer a:hover { text-decoration: underline; }
 body.light footer { border-color: #cbd5e1; color: #94a3b8; }
 body.light footer a { color: #2563eb; }
 
-#modal-box { transition: background 0.2s, border-color 0.2s; }
-body.light #modal-box { background: #fff; border-color: #cbd5e1; }
-body.light #modal-box div[style*="color:#f1f5f9"] { color: #1e293b !important; }
-body.light #modal-box div[style*="color:#94a3b8"] { color: #64748b !important; }
+#modal-box {
+  background: #1e2130;
+  border: 1px solid #2d3348;
+  color: #94a3b8;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+#modal-box > div:first-child { color: #f1f5f9; }
+body.light #modal-box { background: #fff; border-color: #cbd5e1; color: #64748b; }
+body.light #modal-box > div:first-child { color: #1e293b; }
 
 /* ── JSON 上傳錯誤提示 ── */
 #upload-error {
