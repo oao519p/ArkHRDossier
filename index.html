@@ -3,12 +3,35 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    #mobile-warning {
+      display: none;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 9999;
+      background: #1e2130;
+      border-top: 1px solid #f59e0b;
+      color: #fcd34d;
+      font-size: 13px;
+      padding: 10px 16px;
+      text-align: center;
+    }
+    body.light #mobile-warning {
+      background: #fffbeb;
+      border-color: #f59e0b;
+      color: #92400e;
+    }
+    @media (max-width: 768px) {
+      #mobile-warning { display: block; }
+    }
+  </style>
   <title>Arknights Operator Info</title>
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/cards.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
 </head>
 <body>
+  <div id="mobile-warning">⚠️ 本工具僅支援電腦版瀏覽器，手機版功能可能無法正常使用</div>
 
   <!-- 固定右上角工具列 -->
   <div id="topbar">
@@ -32,14 +55,14 @@
     <div id="modal-box" style="background:#1e2130;border:1px solid #2d3348;border-radius:12px;padding:28px 32px;max-width:480px;width:90%;position:relative;">
       <div style="font-size:16px;font-weight:700;color:#f1f5f9;margin-bottom:16px">⚠️ 注意事項</div>
       <div style="font-size:13px;color:#94a3b8;line-height:1.8;">
-        （內容待補）
+        圖片是外連的，加載需要一點時間QAQ
       </div>
       <button id="modal-close" style="margin-top:20px;width:100%" class="btn btn-ghost">關閉</button>
     </div>
   </div>
 
   <div class="container">
-    <h1>🗂️ Arknights Operator Info Card</h1>
+    <h1>🗂️ Arknights Operator Info</h1>
     <p class="subtitle">明日方舟玩家資料查詢工具 (僅支援: 簡中服 & 繁中服)</p>
 
     <!-- ── 流程步驟 ── -->
@@ -109,6 +132,34 @@
         <div class="pi-item"><span class="pi-label">等級</span><span class="pi-value" id="pi-level">—</span></div>
       </div>
 
+      <!-- 統計欄位 -->
+      <div id="stats-bar">
+        <div id="stats-header">
+          <button class="btn-ghost stats-toggle-btn" id="stats-toggle">
+            <span id="stats-toggle-arrow">▼</span> 數據統計
+          </button>
+          <div class="stats-rarity-filter" id="stats-rarity-filter">
+            <button class="btn-sm active" data-stats-rarity="all">全部</button>
+            <button class="btn-sm" data-stats-rarity="5">六星</button>
+            <button class="btn-sm" data-stats-rarity="4">五星</button>
+            <button class="btn-sm" data-stats-rarity="3">四星</button>
+          </div>
+        </div>
+        <div id="stats-content">
+          <div class="stats-grid">
+            <div class="stats-item"><span class="stats-num" id="stat-e2">—</span><span class="stats-label">精二</span></div>
+            <div class="stats-sep"></div>
+            <div class="stats-item"><span class="stats-num" id="stat-sp3">—</span><span class="stats-label">技能專三</span></div>
+            <div class="stats-item"><span class="stats-num" id="stat-sp2">—</span><span class="stats-label">技能專二</span></div>
+            <div class="stats-item"><span class="stats-num" id="stat-sp1">—</span><span class="stats-label">技能專一</span></div>
+            <div class="stats-sep"></div>
+            <div class="stats-item"><span class="stats-num" id="stat-mod3">—</span><span class="stats-label">模組 Lv3</span></div>
+            <div class="stats-item"><span class="stats-num" id="stat-mod2">—</span><span class="stats-label">模組 Lv2</span></div>
+            <div class="stats-item"><span class="stats-num" id="stat-mod1">—</span><span class="stats-label">模組 Lv1</span></div>
+          </div>
+        </div>
+      </div>
+
       <!-- 控制列 -->
       <div id="viewer-controls">
         <!-- 職業 filter -->
@@ -139,26 +190,38 @@
           <button class="btn-sm" data-sort="rarity">稀有度 ↓</button>
           <button class="btn-sm" data-sort="prof">職業</button>
         </div>
-        <!-- 技能切換 -->
+        <!-- 檢視模式切換 -->
         <div class="ctrl-row">
+          <span class="ctrl-label">檢視</span>
+          <button class="btn-sm active" data-view="card">卡片模式</button>
+          <button class="btn-sm" data-view="table">表格模式</button>
+        </div>
+        <!-- 技能切換 -->
+        <div class="ctrl-row" id="skill-mode-row">
           <span class="ctrl-label">技能</span>
           <button class="btn-sm active" data-skill="default">預設技能</button>
           <button class="btn-sm" data-skill="all">全部技能</button>
           <button class="btn-sm" data-skill="none">關閉不顯示</button>
         </div>
+        <!-- 模組切換（僅卡片模式） -->
+        <div class="ctrl-row" id="equip-mode-row">
+          <span class="ctrl-label">模組</span>
+          <button class="btn-sm active" data-equip="default">預設模組</button>
+          <button class="btn-sm" data-equip="all">全部模組</button>
+          <button class="btn-sm" data-equip="none">關閉不顯示</button>
+        </div>
         <!-- 顯示開關 -->
-        <div class="ctrl-row">
+        <div class="ctrl-row" id="vis-row">
           <span class="ctrl-label">顯示</span>
           <button class="btn-sm active" data-vis="rarity-bar">稀有度顏色條</button>
           <button class="btn-sm active" data-vis="elite">精英化</button>
           <button class="btn-sm active" data-vis="level">等級</button>
           <button class="btn-sm active" data-vis="skill-badge">技能等級</button>
-          <button class="btn-sm active" data-vis="equip">模組</button>
           <button class="btn-sm active" data-vis="rarity-icon">稀有度星號</button>
           <button class="btn-sm active" data-vis="potential">潛能</button>
         </div>
         <!-- 名字切換 -->
-        <div class="ctrl-row">
+        <div class="ctrl-row" id="name-row">
           <span class="ctrl-label">名字</span>
           <button class="btn-sm" id="name-toggle">顯示在卡片下方</button>
         </div>
@@ -199,6 +262,8 @@
       const btn = document.getElementById('theme-toggle')
       const isLight = document.body.classList.toggle('light')
       btn.textContent = isLight ? '☀️ 淺色' : '🌙 深色'
+      // 表格模式需重新渲染以更新深/淺色圖片
+      if (window.__rerender) window.__rerender()
     })
 
     document.getElementById('btn-copy-cmd').addEventListener('click', () => {
@@ -248,6 +313,13 @@
       const section = document.getElementById('setup-section')
       const arrow   = document.getElementById('setup-toggle-arrow')
       const collapsed = section.classList.toggle('collapsed')
+      arrow.textContent = collapsed ? '▶' : '▼'
+    })
+
+    document.getElementById('stats-toggle').addEventListener('click', () => {
+      const content = document.getElementById('stats-content')
+      const arrow   = document.getElementById('stats-toggle-arrow')
+      const collapsed = content.classList.toggle('collapsed')
       arrow.textContent = collapsed ? '▶' : '▼'
     })
   </script>

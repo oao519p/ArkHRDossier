@@ -3,3 +3,7 @@ player_info_*.json
 operator_data_*.json
 *.local
 .env
+
+# Codepilot 本地工作目錄（不推上 GitHub）
+.codepilot/
+.codepilot_knowledge/
