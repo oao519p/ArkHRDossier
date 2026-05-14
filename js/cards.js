@@ -159,7 +159,7 @@ function buildFilters(data) {
     if (!rarities.has(r)) return
     const lbl = document.createElement('label')
     const cb  = document.createElement('input')
-    cb.type = 'checkbox'; cb.value = String(r); cb.checked = true
+    cb.type = 'checkbox'; cb.value = String(r); cb.checked = (r === 5)  // 預設只勾選六星
     cb.addEventListener('change', rerender)
     lbl.appendChild(cb)
     lbl.appendChild(document.createTextNode(RARITY_LABELS[r]))
@@ -602,6 +602,8 @@ function bindEvents() {
   document.getElementById('export-html').addEventListener('click', async () => {
     let gridHtml = document.getElementById('card-output').innerHTML
     if (!gridHtml) return
+    const loadingOverlay = document.getElementById('html-loading-overlay')
+    loadingOverlay.style.display = 'flex'
     const uid     = document.getElementById('pi-uid').textContent
     const name    = document.getElementById('pi-name').textContent
     const channel = document.getElementById('pi-channel').textContent
@@ -757,6 +759,7 @@ ${gridHtml}
     a.href = URL.createObjectURL(blob)
     a.download = `operator_cards_${uid}.html`
     a.click()
+    loadingOverlay.style.display = 'none'
   })
 
   // ── 輸出 JSON ──
@@ -871,6 +874,9 @@ ${gridHtml}
         const el = document.getElementById(id)
         if (el) el.style.display = viewMode === 'card' ? '' : 'none'
       })
+      // 表格模式隱藏 ZIP 下載（無法截圖）
+      const exportCards = document.getElementById('export-cards')
+      if (exportCards) exportCards.style.display = viewMode === 'card' ? '' : 'none'
       rerender()
     })
   })
