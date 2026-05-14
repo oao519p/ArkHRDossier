@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>下載圖示</title></head>
+<body>
+<h3>點擊下方按鈕開始下載所有圖示</h3>
+<p>下載完成後，請依照資料夾分類放入專案的 <code>image/</code> 目錄下</p>
+<div id="log" style="font-family:monospace;font-size:12px;margin-top:16px"></div>
+<button onclick="startDownload()" style="padding:8px 16px;font-size:14px">開始下載</button>
+
+<script>
+const BASE = 'https://torappu.prts.wiki/assets'
+const FILES = [
+  // rarity_icon
+  ...[0,1,2,3,4,5].map(r => ({ url: `${BASE}/rarity_icon/rarity_${r}.png`,       name: `rarity_icon/rarity_${r}.png` })),
+  ...[0,1,2,3,4,5].map(r => ({ url: `${BASE}/rarity_icon/rarity_${r}_black.png`,  name: `rarity_icon/rarity_${r}_black.png` })),
+  // profession_large_icon
+  ...['caster','tank','medic','pioneer','sniper','special','support','warrior'].map(p => ({
+    url:  `${BASE}/profession_large_icon/icon_profession_${p}_large.png`,
+    name: `profession_large_icon/icon_profession_${p}_large.png`
+  })),
+  ...['caster','tank','medic','pioneer','sniper','special','support','warrior'].map(p => ({
+    url:  `${BASE}/profession_large_icon/icon_profession_${p}_large_white.png`,
+    name: `profession_large_icon/icon_profession_${p}_large_white.png`
+  })),
+  // elite_icon
+  ...[0,1,2].map(e => ({ url: `${BASE}/elite_icon/elite_${e}_large.png`,          name: `elite_icon/elite_${e}_large.png` })),
+  // potential_icon
+  ...[0,1,2,3,4,5].map(r => ({ url: `${BASE}/potential_icon/potential_${r}.png`,  name: `potential_icon/potential_${r}.png` })),
+  // specialized_icon
+  ...[1,2,3].map(lv => ({ url: `${BASE}/specialized_icon/specialized_tiny_${lv}.png`, name: `specialized_icon/specialized_tiny_${lv}.png` })),
+]
+
+const log = document.getElementById('log')
+function addLog(msg) { log.innerHTML += msg + '<br>'; }
+
+async function startDownload() {
+  for (const f of FILES) {
+    try {
+      const res = await fetch(f.url)
+      if (!res.ok) { addLog(`❌ ${f.name} (${res.status})`); continue }
+      const blob = await res.blob()
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = f.name.replace('/', '_')  // 瀏覽器不支援子目錄，用底線替代
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      addLog(`✅ ${f.name}`)
+      await new Promise(r => setTimeout(r, 300))  // 避免觸發瀏覽器封鎖
+    } catch(e) {
+      addLog(`❌ ${f.name}: ${e.message}`)
+    }
+  }
+  addLog('<b>完成！請將下載的檔案依資料夾分類放入 image/ 目錄</b>')
+}
+</script>
+</body>
+</html>

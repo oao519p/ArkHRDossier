@@ -90,18 +90,18 @@ function getUnlockedEquips(char) {
     .sort((a, b) => a.id < b.id ? -1 : 1)
 }
 
-const rarityIconUrl      = r => `https://torappu.prts.wiki/assets/rarity_icon/rarity_${r}.png`
-const rarityIconUrlLight = r => `https://torappu.prts.wiki/assets/rarity_icon/rarity_${r}_black.png`
-const profIconUrl        = p => `https://torappu.prts.wiki/assets/profession_large_icon/icon_profession_${p.toLowerCase()}_large.png`
-const profIconUrlLight   = p => `https://torappu.prts.wiki/assets/profession_large_icon/icon_profession_${p.toLowerCase()}_large_white.png`
-const eliteIconUrl  = e  => `https://torappu.prts.wiki/assets/elite_icon/elite_${e}_large.png`
-const potentialUrl  = r  => `https://torappu.prts.wiki/assets/potential_icon/potential_${r}.png`
+const rarityIconUrl      = r => `./image/rarity_icon/rarity_${r}.png`
+const rarityIconUrlLight = r => `./image/rarity_icon/rarity_${r}_black.png`
+const profIconUrl        = p => `./image/profession_large_icon/icon_profession_${p.toLowerCase()}_large.png`
+const profIconUrlLight   = p => `./image/profession_large_icon/icon_profession_${p.toLowerCase()}_large_white.png`
+const eliteIconUrl  = e  => `./image/elite_icon/elite_${e}_large.png`
+const potentialUrl  = r  => `./image/potential_icon/potential_${r}.png`
 const skillIconUrl  = id => {
   if (!id) return SKILL_NONE
   if (LOCAL_SKILLS.has(id)) return `./image/${id}.png`
   return `https://torappu.prts.wiki/assets/skill_icon/skill_icon_${id}.png`
 }
-const specIconUrl   = lv => `https://torappu.prts.wiki/assets/specialized_icon/specialized_tiny_${lv}.png`
+const specIconUrl   = lv => `./image/specialized_icon/specialized_tiny_${lv}.png`
 const equipIconUrl  = t  => t ? `https://torappu.prts.wiki/assets/uniequip_direction/${t}.png` : ''
 
 // ── mkImg ──
