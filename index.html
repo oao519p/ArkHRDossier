@@ -51,12 +51,27 @@
     <button class="btn-icon" id="theme-toggle">🌙 深色</button>
   </div>
 
+  <!-- 輸出確認彈窗 -->
+  <div id="modal-export-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;align-items:center;justify-content:center;">
+    <div id="modal-export-box" style="border-radius:12px;padding:28px 32px;max-width:420px;width:90%;position:relative;">
+      <div style="font-size:16px;font-weight:700;margin-bottom:16px">📤 確認輸出</div>
+      <div style="font-size:13px;line-height:1.8;margin-bottom:16px">將以目前的設定進行輸出：</div>
+      <div id="modal-export-summary" style="font-size:12px;line-height:2;background:rgba(0,0,0,0.15);border-radius:8px;padding:10px 14px;margin-bottom:20px"></div>
+      <div style="display:flex;gap:10px">
+        <button id="modal-export-confirm" class="btn btn-success" style="flex:1">確認輸出</button>
+        <button id="modal-export-cancel" class="btn btn-ghost" style="flex:1">取消</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 注意事項彈窗 -->
   <div id="modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;align-items:center;justify-content:center;">
     <div id="modal-box" style="border-radius:12px;padding:28px 32px;max-width:480px;width:90%;position:relative;">
       <div style="font-size:16px;font-weight:700;margin-bottom:16px">⚠️ 注意事項</div>
       <div style="font-size:13px;line-height:1.8;">
-        圖片是外連的，加載需要一點時間QAQ
+        1. 圖片是外連的，加載需要一點時間QAQ <br>
+        2. 僅支援電腦版瀏覽器，手機版功能可能無法正常使用 <br>
+        3. 僅支援: 簡中服(官/B) & 繁中服
       </div>
       <label style="display:flex;align-items:center;gap:8px;margin-top:16px;font-size:12px;cursor:pointer;color:#64748b">
         <input type="checkbox" id="modal-no-show" style="cursor:pointer">
@@ -261,6 +276,8 @@
   </div><!-- /container -->
 
   <footer>
+    <span id="app-version">v0.1.0-beta</span>
+    &nbsp;｜&nbsp;
     © 2026 &nbsp;｜&nbsp;
     友站：<a href="https://www.facebook.com/TWDrMemo" target="_blank">屑博備忘錄</a>
     &nbsp;｜&nbsp;

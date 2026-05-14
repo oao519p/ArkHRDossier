@@ -1,7 +1,8 @@
-# Arknights Operator Info Card
+# Arknights Operator Info
 
 明日方舟幹員卡片查詢工具，支援繁中服（SKPORT）與簡中服（SKLAND）。
 
+![version](https://img.shields.io/badge/version-v0.1.0--beta-blue)
 ![preview](https://img.shields.io/badge/status-active-brightgreen)
 
 ---
