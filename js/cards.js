@@ -105,10 +105,11 @@ const specIconUrl   = lv => `https://torappu.prts.wiki/assets/specialized_icon/s
 const equipIconUrl  = t  => t ? `https://torappu.prts.wiki/assets/uniequip_direction/${t}.png` : ''
 
 // ── mkImg ──
-function mkImg(src, cls, skillId) {
+function mkImg(src, cls, skillId, lazy) {
   const img = document.createElement('img')
   img.src = src
   if (cls) img.className = cls
+  if (lazy) img.loading = 'lazy'
   img.onerror = () => {
     img.onerror = null
     if (skillId && LOCAL_SKILLS.has(skillId)) {
@@ -255,7 +256,7 @@ function renderGrid(data, allowedProfs, allowedRarities, searchQuery, sortMode) 
     const card = document.createElement('div')
     card.className = 'op-card'
 
-    card.appendChild(mkImg(skinIdToUrl(c.skinId), 'portrait'))
+    card.appendChild(mkImg(skinIdToUrl(c.skinId), 'portrait', null, true))
 
     if (visFlags['rarity-bar']) {
       const bar = document.createElement('div')
@@ -816,6 +817,15 @@ ${gridHtml}
       const nameEl = wrap?.querySelector('.op-name')
       const name   = (nameEl?.textContent || `card_${i + 1}`).trim().replace(/[\\/:*?"<>|]/g, '_')
       statusEl.textContent = `處理中 ${i + 1} / ${cards.length}　${name}`
+      // 立繪為 lazy，截圖前強制等待載入完成
+      const portrait = card.querySelector('img.portrait')
+      if (portrait && !portrait.complete) {
+        portrait.loading = 'eager'
+        await new Promise(resolve => {
+          portrait.onload  = resolve
+          portrait.onerror = resolve
+        })
+      }
       try {
         const canvas = await html2canvas(card, { useCORS: true, allowTaint: false, scale: 2, backgroundColor: null })
         const blob = await new Promise(r => canvas.toBlob(r, 'image/png'))
