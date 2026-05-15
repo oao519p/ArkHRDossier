@@ -482,18 +482,54 @@ async function imgToBase64(url) {
   } catch { return url }
 }
 
-async function inlineLocalImages(html) {
-  const matches = [...html.matchAll(/src="(\.\/image\/[^"]+)"/g)]
-  for (const [full, src] of matches) {
-    const b64 = await imgToBase64(src)
-    html = html.replaceAll(`src="${src}"`, `src="${b64}"`)
+async function inlineLocalOnly(html) {
+  const srcMatches = [...html.matchAll(/src="(\.\/image\/[^"]+)"/g)]
+  const bgMatches  = [...html.matchAll(/url\('(\.\/image\/[^']+)'\)/g)]
+  const allUrls = [...new Set([...srcMatches.map(m => m[1]), ...bgMatches.map(m => m[1])])]
+  const cache = {}
+  for (const url of allUrls) {
+    if (!cache[url]) cache[url] = await imgToBase64(url)
   }
-  // background-image url
-  const bgMatches = [...html.matchAll(/url\('(\.\/image\/[^']+)'\)/g)]
-  for (const [full, src] of bgMatches) {
-    const b64 = await imgToBase64(src)
-    html = html.replaceAll(`url('${src}')`, `url('${b64}')`)
+  for (const [, src] of srcMatches) {
+    if (cache[src]) html = html.replaceAll(`src="${src}"`, `src="${cache[src]}"`)
   }
+  for (const [, src] of bgMatches) {
+    if (cache[src]) html = html.replaceAll(`url('${src}')`, `url('${cache[src]}')`)
+  }
+  return html
+}
+
+async function inlineAllImages(html, onProgress) {
+  // 收集所有需要 inline 的 src（本地 + 外連）
+  const srcMatches = [...html.matchAll(/src="((?:\.\/image\/|https:\/\/torappu\.prts\.wiki\/)[^"]+)"/g)]
+  const bgMatches  = [...html.matchAll(/url\('((?:\.\/image\/|https:\/\/torappu\.prts\.wiki\/)[^']+)'\)/g)]
+
+  // 去重
+  const allUrls = [...new Set([
+    ...srcMatches.map(m => m[1]),
+    ...bgMatches.map(m => m[1]),
+  ])]
+
+  const total = allUrls.length
+  const cache = {}
+  for (let i = 0; i < allUrls.length; i++) {
+    const url = allUrls[i]
+    if (!cache[url]) cache[url] = await imgToBase64(url)
+    if (onProgress) onProgress(i + 1, total, url)
+  }
+
+  // 替換 src
+  for (const [, src] of srcMatches) {
+    if (cache[src]) html = html.replaceAll(`src="${src}"`, `src="${cache[src]}"`)
+  }
+  // 替換 background-image
+  for (const [, src] of bgMatches) {
+    if (cache[src]) html = html.replaceAll(`url('${src}')`, `url('${cache[src]}')`)
+  }
+
+  // 移除 loading="lazy"
+  html = html.replace(/ loading="lazy"/g, '')
+
   return html
 }
 
@@ -606,14 +642,27 @@ function bindEvents() {
     const SKILL_NAMES = { default: '預設技能', all: '全部技能', none: '關閉不顯示' }
     const EQUIP_NAMES = { default: '預設模組', all: '全部模組', none: '關閉不顯示' }
     const VIEW_NAMES  = { card: '卡片模式', table: '表格模式' }
-    const countLabel  = document.getElementById('count-label').textContent || ''
+    const VIS_LABELS  = {
+      'rarity-bar': '稀有度顏色條', 'elite': '精英化', 'level': '等級',
+      'skill-badge': '技能等級', 'rarity-icon': '稀有度星號', 'potential': '潛能',
+    }
+    const isLight    = document.body.classList.contains('light')
+    const countLabel = document.getElementById('count-label').textContent || ''
+
     const lines = [
+      `主題：${isLight ? '☀️ 淺色' : '🌙 深色'}`,
       `檢視模式：${VIEW_NAMES[viewMode] || viewMode}`,
       `排序：${SORT_NAMES[sortMode] || sortMode}${sortDesc ? ' ↑' : ' ↓'}`,
     ]
     if (viewMode === 'card') {
       lines.push(`技能：${SKILL_NAMES[skillMode] || skillMode}`)
       lines.push(`模組：${EQUIP_NAMES[equipMode] || equipMode}`)
+      const nameLabel = nameInline ? '顯示在卡片內嵌' : '顯示在卡片下方'
+      lines.push(`名字：${nameLabel}`)
+      const onFlags  = Object.keys(VIS_LABELS).filter(k => visFlags[k]).map(k => VIS_LABELS[k])
+      const offFlags = Object.keys(VIS_LABELS).filter(k => !visFlags[k]).map(k => VIS_LABELS[k])
+      if (onFlags.length)  lines.push(`顯示：${onFlags.join('、')}`)
+      if (offFlags.length) lines.push(`隱藏：${offFlags.join('、')}`)
     }
     if (countLabel) lines.push(countLabel)
     return lines.map(l => `• ${l}`).join('<br>')
@@ -628,7 +677,8 @@ function bindEvents() {
 
   document.getElementById('modal-export-confirm').addEventListener('click', () => {
     document.getElementById('modal-export-overlay').style.display = 'none'
-    if (pendingExportFn) { pendingExportFn(); pendingExportFn = null }
+    const imgMode = document.querySelector('input[name="export-img-mode"]:checked')?.value || 'online'
+    if (pendingExportFn) { pendingExportFn(imgMode); pendingExportFn = null }
   })
   document.getElementById('modal-export-cancel').addEventListener('click', () => {
     document.getElementById('modal-export-overlay').style.display = 'none'
@@ -647,7 +697,7 @@ function bindEvents() {
     showExportModal(doExportHtml)
   })
 
-  async function doExportHtml() {
+  async function doExportHtml(imgMode = 'online') {
     let gridHtml = document.getElementById('card-output').innerHTML
     if (!gridHtml) return
     const loadingOverlay = document.getElementById('html-loading-overlay')
@@ -763,7 +813,22 @@ function bindEvents() {
       }
     }
 
-    gridHtml = await inlineLocalImages(gridHtml)
+    const loadingDivs = loadingOverlay.querySelectorAll('div div')
+    const loadingText = loadingDivs[1] || null
+    const loadingSub  = loadingDivs[2] || null
+    if (imgMode === 'offline') {
+      // 完整模式：本地 + 外連全部 inline
+      gridHtml = await inlineAllImages(gridHtml, (cur, total) => {
+        if (loadingText) loadingText.textContent = `正在下載圖片 ${cur} / ${total}`
+        if (loadingSub)  loadingSub.textContent  = ''
+      })
+    } else {
+      // 快速模式：只 inline 本地圖片，外連保持 URL
+      gridHtml = await inlineLocalOnly(gridHtml)
+      gridHtml = gridHtml.replace(/ loading="lazy"/g, '')
+    }
+    if (loadingText) loadingText.textContent = '正在產生 HTML...'
+    if (loadingSub)  loadingSub.textContent  = '請稍候'
 
     // 表格模式：補上欄寬與間距（!important 確保覆蓋外部 CSS）
     const tableFixStyle = viewMode === 'table' ? `
