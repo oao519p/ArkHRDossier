@@ -668,10 +668,12 @@ function bindEvents() {
     return lines.map(l => `• ${l}`).join('<br>')
   }
 
-  function showExportModal(onConfirm, showImgMode = true) {
+  function showExportModal(onConfirm, showImgMode = true, showPngOptions = false) {
     document.getElementById('modal-export-summary').innerHTML = buildExportSummary()
     const imgModeSection = document.getElementById('modal-export-overlay').querySelector('[data-img-mode]')
     if (imgModeSection) imgModeSection.style.display = showImgMode ? '' : 'none'
+    const pngOptions = document.getElementById('modal-export-png-options')
+    if (pngOptions) pngOptions.style.display = showPngOptions ? '' : 'none'
     const overlay = document.getElementById('modal-export-overlay')
     overlay.style.display = 'flex'
     pendingExportFn = onConfirm
@@ -754,13 +756,14 @@ function bindEvents() {
         grpBdr:  isLight ? '#cbd5e1'  : '#2d3348',
       }
 
-      function mkGroup(title, vals) {
+      function mkGroup(title, vals, isLast = false) {
         const sep = `<div style="width:1px;height:32px;background:${clr.sep};margin:0 4px;flex-shrink:0"></div>`
         const items = vals.map((v,i) => {
           const needSep = (i===1||i===4) ? sep : ''
           return needSep + `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:44px"><span style="font-size:18px;font-weight:700;color:${clr.num};line-height:1">${v}</span><span style="font-size:10px;color:${clr.label};white-space:nowrap">${labels[i]}</span></div>`
         }).join('')
-        return `<div style="display:flex;flex-direction:column;align-items:flex-start;padding:0 12px 0 0;border-right:1px solid ${clr.grpBdr};margin-right:12px;flex-shrink:0">
+        const borderStyle = isLast ? '' : `border-right:1px solid ${clr.grpBdr};margin-right:12px;`
+        return `<div style="display:flex;flex-direction:column;align-items:flex-start;padding:0 12px 0 0;${borderStyle}flex-shrink:0">
   <div style="font-size:10px;color:${clr.title};margin-bottom:6px;font-weight:600">${title}</div>
   <div style="display:flex;align-items:center;gap:6px 10px;flex-wrap:wrap">${items}</div>
 </div>`
@@ -770,7 +773,7 @@ function bindEvents() {
         mkGroup('全部',    calcGroup('all')),
         mkGroup('六星 ★6', calcGroup('5')),
         mkGroup('五星 ★5', calcGroup('4')),
-        mkGroup('四星 ★4', calcGroup('3')),
+        mkGroup('四星 ★4', calcGroup('3'), true),
       ]
       return `<div style="display:block;margin-bottom:16px;background:${clr.bg};border:1px solid ${clr.border};border-radius:12px;padding:12px 16px">
   <div style="font-size:12px;font-weight:600;color:${clr.title};margin-bottom:10px">數據統計</div>
@@ -970,6 +973,235 @@ ${gridHtml}
       a.click()
       statusEl.textContent = `完成，共 ${cards.length} 張`
     }
+  }
+
+  // ── 輸出長圖 PNG ──
+  document.getElementById('export-png').addEventListener('click', () => {
+    const output = document.getElementById('card-output')
+    if (!output || !output.children.length) return
+    showExportModal(doExportPng, false, true)
+  })
+
+  async function doExportPng() {
+    const includePlayer = document.getElementById('png-include-player')?.checked ?? true
+    const includeStats  = document.getElementById('png-include-stats')?.checked ?? true
+    const loadingOverlay = document.getElementById('html-loading-overlay')
+    const loadingDivs    = loadingOverlay.querySelectorAll('div div')
+    const loadingText    = loadingDivs[1] || null
+    const loadingSub     = loadingDivs[2] || null
+    loadingOverlay.style.display = 'flex'
+    if (loadingText) loadingText.textContent = '載入函式庫…'
+    if (loadingSub)  loadingSub.textContent  = ''
+
+    async function loadScript(src) {
+      return new Promise((res, rej) => {
+        if (document.querySelector(`script[src="${src}"]`)) return res()
+        const s = document.createElement('script')
+        s.src = src; s.onload = res; s.onerror = rej
+        document.head.appendChild(s)
+      })
+    }
+    try {
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js')
+    } catch {
+      loadingOverlay.style.display = 'none'
+      document.getElementById('export-status').textContent = '載入函式庫失敗，請確認網路連線'
+      return
+    }
+
+    // 強制等待所有 lazy 立繪載入完成
+    const allImgs = [...document.querySelectorAll('#card-output img')]
+    if (loadingText) loadingText.textContent = '等待圖片載入…'
+    await Promise.all(allImgs.map(img => {
+      if (img.complete) return Promise.resolve()
+      img.loading = 'eager'
+      return new Promise(r => { img.onload = r; img.onerror = r })
+    }))
+
+    // 建立離屏容器，固定每排 10 個
+    const COLS       = 10
+    const isLight    = document.body.classList.contains('light')
+    const bgColor    = isLight ? '#f1f5f9' : '#111827'
+    const wraps      = [...document.querySelectorAll('#card-output .op-wrap')]
+    const cardW      = wraps.length ? wraps[0].offsetWidth  : 120
+    const cardH      = wraps.length ? wraps[0].offsetHeight : 160
+    const gap        = 8
+    const padX       = 16
+    const padY       = 16
+
+    // 計算玩家資料列高度
+    const playerBar  = document.getElementById('player-info-bar')
+    const statsBar   = document.getElementById('stats-bar')
+    const playerH    = (includePlayer && playerBar) ? playerBar.offsetHeight + gap : 0
+    const statsH     = (includeStats  && statsBar)  ? statsBar.offsetHeight  + gap : 0
+
+    const rows       = Math.ceil(wraps.length / COLS)
+    const totalW     = padX * 2 + COLS * cardW + (COLS - 1) * gap
+    const totalH     = padY * 2 + playerH + statsH + rows * cardH + (rows - 1) * gap
+
+    if (loadingText) loadingText.textContent = '截圖中…'
+
+    // 卡片模式：統計欄四組約需 1410px，取較大值
+    const cardModeW = Math.max(totalW, 1410 + padX * 2)
+
+    // 建立離屏 div
+    const offscreen = document.createElement('div')
+    offscreen.style.cssText = `position:fixed;left:-99999px;top:0;width:${cardModeW}px;background:${bgColor};padding:${padY}px ${padX}px;box-sizing:border-box;`
+    // 表格模式寬度在後面動態調整
+
+    if (includePlayer && playerBar) {
+      offscreen.appendChild(playerBar.cloneNode(true))
+      const sp = document.createElement('div')
+      sp.style.height = gap + 'px'
+      offscreen.appendChild(sp)
+    }
+    if (includeStats && statsBar) {
+      // 直接輸出統計數字，不保留 bar 結構
+      const chars   = gData?.chars || []
+      const infoMap = gData?.charInfoMap || {}
+      const groups  = [
+        { label: '全部', filter: null },
+        { label: '六星 ★6', filter: 5 },
+        { label: '五星 ★5', filter: 4 },
+        { label: '四星 ★4', filter: 3 },
+      ]
+      const statLabels = ['精二','技能專三','技能專二','技能專一','模組 Lv3','模組 Lv2','模組 Lv1']
+      function calcStats(filterRarity) {
+        const list = filterRarity == null ? chars : chars.filter(c => (infoMap[c.charId]?.rarity ?? c.rarity ?? 0) === filterRarity)
+        let e2=0,sp3=0,sp2=0,sp1=0,mod3=0,mod2=0,mod1=0
+        list.forEach(c => {
+          if (c.evolvePhase === 2) e2++
+          ;(c.skills||[]).forEach(sk => { const lv=sk.specializeLevel||0; if(lv===3)sp3++; else if(lv===2)sp2++; else if(lv===1)sp1++ })
+          ;(c.equip||[]).filter(e=>!e.id.startsWith('uniequip_001_')&&e.locked===false).forEach(eq=>{ if(eq.level===3)mod3++; else if(eq.level===2)mod2++; else if(eq.level===1)mod1++ })
+        })
+        return [e2,sp3,sp2,sp1,mod3,mod2,mod1]
+      }
+      const numColor   = isLight ? '#1d4ed8' : '#60a5fa'
+      const lblColor   = isLight ? '#64748b' : '#64748b'
+      const titleColor = isLight ? '#64748b' : '#94a3b8'
+      const borderClr  = isLight ? '#cbd5e1' : '#2d3348'
+      const bgClr      = isLight ? '#ffffff' : '#1e2130'
+
+      const statsRow = document.createElement('div')
+      statsRow.style.cssText = `display:flex;flex-wrap:nowrap;gap:12px;padding:12px 16px;background:${bgClr};border:1px solid ${borderClr};border-radius:12px;margin-bottom:${gap}px;`
+
+      groups.forEach((g, gi) => {
+        const vals = calcStats(g.filter)
+        const isLast = gi === groups.length - 1
+        const grpDiv = document.createElement('div')
+        grpDiv.style.cssText = `display:flex;flex-direction:column;gap:4px;padding-right:12px;${isLast ? '' : `border-right:1px solid ${borderClr};`}flex-shrink:0;`
+
+        const titleEl = document.createElement('div')
+        titleEl.style.cssText = `font-size:10px;color:${titleColor};font-weight:600;margin-bottom:4px;`
+        titleEl.textContent = g.label
+        grpDiv.appendChild(titleEl)
+
+        const row = document.createElement('div')
+        row.style.cssText = 'display:flex;gap:8px;'
+        vals.forEach((v, i) => {
+          const cell = document.createElement('div')
+          cell.style.cssText = 'display:flex;flex-direction:column;align-items:center;min-width:40px;'
+          const num = document.createElement('span')
+          num.style.cssText = `font-size:16px;font-weight:700;color:${numColor};`
+          num.textContent = v
+          const lbl = document.createElement('span')
+          lbl.style.cssText = `font-size:10px;color:${lblColor};white-space:nowrap;`
+          lbl.textContent = statLabels[i]
+          cell.appendChild(num)
+          cell.appendChild(lbl)
+          row.appendChild(cell)
+        })
+        grpDiv.appendChild(row)
+        statsRow.appendChild(grpDiv)
+      })
+      offscreen.appendChild(statsRow)
+    }
+
+    if (viewMode === 'table') {
+      // 表格模式：把 tbody rows 拆成兩半並排
+      const srcTable = document.getElementById('op-table')
+      if (srcTable) {
+        const thead = srcTable.querySelector('thead')
+        const rows  = [...srcTable.querySelectorAll('tbody tr')]
+        const half  = Math.ceil(rows.length / 2)
+        function cloneTable(rowList) {
+          const t = srcTable.cloneNode(false)
+          t.style.cssText = 'width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed;'
+          if (thead) t.appendChild(thead.cloneNode(true))
+          const tb = document.createElement('tbody')
+          rowList.forEach(r => tb.appendChild(r.cloneNode(true)))
+          t.appendChild(tb)
+          return t
+        }
+        const twoCol = document.createElement('div')
+        twoCol.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;'
+        const leftDiv = document.createElement('div')
+        leftDiv.appendChild(cloneTable(rows.slice(0, half)))
+        const rightDiv = document.createElement('div')
+        rightDiv.appendChild(cloneTable(rows.slice(half)))
+        twoCol.appendChild(leftDiv)
+        twoCol.appendChild(rightDiv)
+        // 兩欄並排：每欄用原始表格寬度，加上 gap 和 padding
+        const singleTableW = srcTable.scrollWidth || srcTable.offsetWidth || 700
+        offscreen.style.width = (singleTableW * 2 + 16 + padX * 2) + 'px'
+        offscreen.appendChild(twoCol)
+      }
+    } else {
+      const grid = document.createElement('div')
+      grid.style.cssText = `display:grid;grid-template-columns:repeat(${COLS},${cardW}px);gap:${gap}px;justify-content:center;`
+      wraps.forEach(w => grid.appendChild(w.cloneNode(true)))
+      offscreen.appendChild(grid)
+    }
+    document.body.appendChild(offscreen)
+
+
+    try {
+      const imgScale = Number(document.querySelector('input[name="export-img-scale"]:checked')?.value || 2)
+      const canvas = await html2canvas(offscreen, {
+        useCORS: true,
+        allowTaint: false,
+        scale: imgScale,
+        backgroundColor: bgColor,
+        width: parseInt(offscreen.style.width) || cardModeW,
+        height: offscreen.scrollHeight,
+      })
+      const imgFormat = document.querySelector('input[name="export-img-format"]:checked')?.value || 'jpeg'
+      const uid = getPlayerUid()
+      if (imgFormat === 'jpeg') {
+        // JPEG：先合成背景色再輸出
+        const flatCanvas = document.createElement('canvas')
+        flatCanvas.width  = canvas.width
+        flatCanvas.height = canvas.height
+        const ctx = flatCanvas.getContext('2d')
+        ctx.fillStyle = bgColor
+        ctx.fillRect(0, 0, flatCanvas.width, flatCanvas.height)
+        ctx.drawImage(canvas, 0, 0)
+        flatCanvas.toBlob(blob => {
+          const a = document.createElement('a')
+          a.href = URL.createObjectURL(blob)
+          a.download = `operator_cards_${uid}.jpg`
+          a.click()
+          document.getElementById('export-status').textContent = '完成'
+        }, 'image/jpeg', 0.88)
+      } else {
+        // PNG：直接輸出
+        canvas.toBlob(blob => {
+          const a = document.createElement('a')
+          a.href = URL.createObjectURL(blob)
+          a.download = `operator_cards_${uid}.png`
+          a.click()
+          document.getElementById('export-status').textContent = '完成'
+        }, 'image/png')
+      }
+    } catch (e) {
+      console.error('長圖截圖失敗:', e)
+      document.getElementById('export-status').textContent = '截圖失敗'
+    }
+
+    document.body.removeChild(offscreen)
+    loadingOverlay.style.display = 'none'
+    if (loadingText) loadingText.textContent = '正在產生 HTML...'
+    if (loadingSub)  loadingSub.textContent  = '請稍候'
   }
 
   document.getElementById('export-pause').addEventListener('click', () => {

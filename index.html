@@ -25,6 +25,19 @@
     @media (max-width: 768px) {
       #mobile-warning { display: block; }
     }
+    #html-loading-overlay > div {
+      background: #1e2130;
+      border: 1px solid #2d3348;
+      color: #f1f5f9;
+    }
+    body.light #html-loading-overlay > div {
+      background: #ffffff;
+      border-color: #cbd5e1;
+      color: #1e293b;
+    }
+    body.light #html-loading-overlay > div > div:last-child {
+      color: #64748b;
+    }
   </style>
   <title>Arknights HR Dossier</title>
   <link rel="icon" type="image/png" href="./image/icon.png">
@@ -68,6 +81,66 @@
           <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:12px">
             <input type="radio" name="export-img-mode" value="offline" style="margin-top:2px;cursor:pointer">
             <span><strong>完整（下載）</strong><br><span style="color:#64748b">圖片全部內嵌，檔案大、匯出慢，完全離線可用</span></span>
+          </label>
+        </div>
+      </div>
+      <div id="modal-export-png-options" style="display:none;margin-bottom:16px">
+        <div style="font-size:12px;margin-bottom:8px;font-weight:600">長圖包含</div>
+        <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;margin-bottom:12px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="png-include-player" checked style="cursor:pointer">
+            玩家資料（UID、名稱、伺服器、等級）
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="png-include-stats" checked style="cursor:pointer">
+            數據統計
+          </label>
+        </div>
+        <div style="font-size:12px;margin-bottom:8px;font-weight:600;display:flex;align-items:center;gap:6px">
+          輸出格式 / 解析度
+          <span id="png-size-hint-btn" style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#475569;color:#f1f5f9;font-size:10px;font-weight:700;cursor:pointer;flex-shrink:0;user-select:none;position:relative">?
+          <div id="png-size-hint" style="display:none;position:absolute;left:calc(100% + 8px);top:50%;transform:translateY(-50%);z-index:10;background:#1e2130;border:1px solid #2d3348;border-radius:8px;padding:10px 14px;font-size:11px;line-height:1.8;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,0.4)">
+            <div style="font-weight:600;margin-bottom:6px;color:#94a3b8">參考檔案大小（390 位幹員，全技能全模組）</div>
+            <table style="border-collapse:collapse;width:100%">
+              <thead><tr>
+                <th style="padding:2px 12px 2px 0;color:#64748b;font-weight:600;text-align:left"></th>
+                <th style="padding:2px 12px;color:#64748b;font-weight:600;text-align:center">1x</th>
+                <th style="padding:2px 0;color:#64748b;font-weight:600;text-align:center">2x</th>
+              </tr></thead>
+              <tbody>
+                <tr>
+                  <td style="padding:2px 12px 2px 0;color:#94a3b8">JPEG</td>
+                  <td style="padding:2px 12px;text-align:center;color:#60a5fa;font-weight:600">5 MB</td>
+                  <td style="padding:2px 0;text-align:center;color:#60a5fa;font-weight:600">14 MB</td>
+                </tr>
+                <tr>
+                  <td style="padding:2px 12px 2px 0;color:#94a3b8">PNG</td>
+                  <td style="padding:2px 12px;text-align:center;color:#f59e0b;font-weight:600">19 MB</td>
+                  <td style="padding:2px 0;text-align:center;color:#f59e0b;font-weight:600">77 MB</td>
+                </tr>
+              </tbody>
+            </table>
+          </div></span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;font-size:12px;margin-bottom:12px">
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
+            <input type="radio" name="export-img-format" value="jpeg" checked style="margin-top:2px;cursor:pointer">
+            <span><strong>JPEG</strong><br><span style="color:#64748b">檔案較小，適合大量幹員輸出(分享用)</span></span>
+          </label>
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
+            <input type="radio" name="export-img-format" value="png" style="margin-top:2px;cursor:pointer">
+            <span><strong>PNG</strong><br><span style="color:#64748b">無損畫質，檔案較大</span></span>
+          </label>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;font-size:12px">
+        <hr style="border:none;border-top:1px solid #2d3348;margin:4px 0 10px">
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
+            <input type="radio" name="export-img-scale" value="2" checked style="margin-top:2px;cursor:pointer">
+            <span><strong>2x</strong><br><span style="color:#64748b">高解析度，適合放大檢視</span></span>
+          </label>
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
+            <input type="radio" name="export-img-scale" value="1" style="margin-top:2px;cursor:pointer">
+            <span><strong>1x</strong><br><span style="color:#64748b">標準解析度，檔案較小</span></span>
           </label>
         </div>
       </div>
@@ -263,11 +336,12 @@
         <div class="ctrl-row">
           <span class="ctrl-label">輸出</span>
           <button class="btn-sm" id="export-html">下載 HTML</button>
-          <button class="btn-sm" id="export-cards">下載卡片圖片 (ZIP)</button>
+          <button class="btn-sm" id="export-cards">下載卡片單一圖片 (ZIP)</button>
+          <button class="btn-sm" id="export-png">下載完整長圖</button>
           <button class="btn-sm" id="export-json">下載 JSON</button>
           <!-- HTML 下載中遮罩 -->
           <div id="html-loading-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:2000;align-items:center;justify-content:center;flex-direction:column;gap:12px;">
-            <div style="background:#1e2130;border:1px solid #2d3348;border-radius:12px;padding:24px 32px;text-align:center;color:#f1f5f9;">
+            <div style="border-radius:12px;padding:24px 32px;text-align:center;">
               <div style="font-size:20px;margin-bottom:8px">⏳</div>
               <div style="font-size:14px;font-weight:600">正在產生 HTML...</div>
               <div style="font-size:12px;color:#64748b;margin-top:4px">請稍候</div>
@@ -372,6 +446,16 @@
       const collapsed = section.classList.toggle('collapsed')
       arrow.textContent = collapsed ? '▶' : '▼'
     })
+
+    const hintBtn = document.getElementById('png-size-hint-btn')
+    const hintBox = document.getElementById('png-size-hint')
+    if (hintBtn && hintBox) {
+      hintBtn.addEventListener('click', e => {
+        e.stopPropagation()
+        hintBox.style.display = hintBox.style.display === 'none' ? 'block' : 'none'
+      })
+      document.addEventListener('click', () => { hintBox.style.display = 'none' })
+    }
 
     document.getElementById('stats-toggle').addEventListener('click', () => {
       const content = document.getElementById('stats-content')
