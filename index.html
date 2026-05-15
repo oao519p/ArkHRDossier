@@ -26,7 +26,8 @@
       #mobile-warning { display: block; }
     }
   </style>
-  <title>Arknights Operator Info</title>
+  <title>Arknights HR Dossier</title>
+  <link rel="icon" type="image/png" href="./image/icon.png">
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/cards.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
@@ -56,7 +57,20 @@
     <div id="modal-export-box" style="border-radius:12px;padding:28px 32px;max-width:420px;width:90%;position:relative;">
       <div style="font-size:16px;font-weight:700;margin-bottom:16px">📤 確認輸出</div>
       <div style="font-size:13px;line-height:1.8;margin-bottom:16px">將以目前的設定進行輸出：</div>
-      <div id="modal-export-summary" style="font-size:12px;line-height:2;background:rgba(0,0,0,0.15);border-radius:8px;padding:10px 14px;margin-bottom:20px"></div>
+      <div id="modal-export-summary" style="font-size:12px;line-height:2;background:rgba(0,0,0,0.15);border-radius:8px;padding:10px 14px;margin-bottom:16px"></div>
+      <div style="margin-bottom:16px">
+        <div style="font-size:12px;margin-bottom:8px;font-weight:600">圖片模式</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:12px">
+            <input type="radio" name="export-img-mode" value="online" checked style="margin-top:2px;cursor:pointer">
+            <span><strong>快速（外連）</strong><br><span style="color:#64748b">圖片仍從網路載入，檔案小、匯出快，需要網路才能顯示圖片</span></span>
+          </label>
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:12px">
+            <input type="radio" name="export-img-mode" value="offline" style="margin-top:2px;cursor:pointer">
+            <span><strong>完整（下載）</strong><br><span style="color:#64748b">圖片全部內嵌，檔案大、匯出慢，完全離線可用</span></span>
+          </label>
+        </div>
+      </div>
       <div style="display:flex;gap:10px">
         <button id="modal-export-confirm" class="btn btn-success" style="flex:1">確認輸出</button>
         <button id="modal-export-cancel" class="btn btn-ghost" style="flex:1">取消</button>
@@ -82,8 +96,8 @@
   </div>
 
   <div class="container">
-    <h1>🗂️ Arknights Operator Info</h1>
-    <p class="subtitle">明日方舟玩家資料查詢工具 (僅支援: 簡中服 & 繁中服)</p>
+    <h1>🗄️ Arknights HR Dossier</h1>
+    <p class="subtitle">明日方舟人事部文檔 — 玩家幹員資料查詢工具 (支援: 簡中服 & 繁中服)</p>
 
     <!-- ── 流程步驟 ── -->
     <div id="setup-wrap">
@@ -108,7 +122,7 @@
           <div class="code-block" id="cred-cmd" style="flex:1;margin:0;overflow-x:auto;white-space:nowrap">copy(localStorage.getItem('SK_OAUTH_CRED_KEY') + ',' + localStorage.getItem('SK_TOKEN_CACHE_KEY'))</div>
           <button class="btn-icon" id="btn-copy-cmd" style="flex-shrink:0">📋 複製</button>
         </div>
-        <p>Console 會直接輸出一行文字，複製後貼入下方（格式為 <code>cred,token</code>）：</p>
+        <p>執行後 <strong>剪貼簿會自動複製</strong> <code>cred,token</code>，直接貼入下方即可（Console 不會顯示任何文字，這是正常的）：</p>
         <div class="input-row">
           <input type="text" id="input-cred" placeholder="貼上 cred,token …" autocomplete="off" spellcheck="false">
           <button class="btn btn-primary" id="btn-cred">確認</button>
@@ -133,7 +147,7 @@
           <div class="step-num">3</div>
           <div class="step-title">取得幹員資料</div>
         </div>
-        <p>點擊下方按鈕從 SKPORT API 取得幹員資料。</p>
+        <p>點擊下方按鈕從 SKPORT/SKLAND API 取得幹員資料。</p>
         <button class="btn btn-success" id="btn-fetch">獲取資料</button>
         <div id="err-fetch" class="log-error" style="display:none;font-size:12px;margin-top:6px;"></div>
       </div>
@@ -276,7 +290,7 @@
   </div><!-- /container -->
 
   <footer>
-    <span id="app-version">v0.1.0-beta</span>
+    <span id="app-version">v0.2.0-beta</span>
     &nbsp;｜&nbsp;
     © 2026 &nbsp;｜&nbsp;
     友站：<a href="https://www.facebook.com/TWDrMemo" target="_blank">屑博備忘錄</a>

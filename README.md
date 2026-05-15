@@ -1,9 +1,11 @@
-# Arknights Operator Info
+# Arknights HR Dossier
 
-明日方舟幹員卡片查詢工具，支援繁中服（SKPORT）與簡中服（SKLAND）。
+明日方舟人事部文檔 — 玩家幹員資料查詢工具，支援繁中服（SKPORT）與簡中服（SKLAND）。
 
-![version](https://img.shields.io/badge/version-v0.1.0--beta-blue)
+![version](https://img.shields.io/badge/version-v0.2.0--beta-blue)
 ![preview](https://img.shields.io/badge/status-active-brightgreen)
+
+> ⚠️ 僅支援電腦版瀏覽器，手機版功能可能無法正常使用
 
 ---
 
@@ -13,13 +15,12 @@
 - 或直接上傳本地 JSON 檔案
 - **卡片模式**：幹員半身像卡片，包含精英化、等級、潛能、技能、模組
   - 模組切換：預設模組 / 全部模組 / 關閉不顯示
+  - 技能切換：預設模組 / 全部模組 / 關閉不顯示
 - **表格模式**：完整資訊列表，顯示全部技能與模組
 - **數據統計欄位**：精二 / 技能專三/二/一 / 模組 Lv1-3，支援六/五/四星篩選
-- 職業 / 稀有度篩選、搜尋、排序
+- 職業 / 稀有度 / 等級 / 獲取時間排序、搜尋名稱
 - 深色 / 淺色模式
-- 輸出：下載 HTML（含統計）、下載卡片圖片 ZIP、下載 JSON
-
-> ⚠️ 僅支援電腦版瀏覽器，手機版功能可能無法正常使用
+- 輸出：下載 HTML（快速外連 / 完整離線）、下載卡片圖片 ZIP、下載 JSON
 
 ---
 
