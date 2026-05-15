@@ -668,8 +668,10 @@ function bindEvents() {
     return lines.map(l => `• ${l}`).join('<br>')
   }
 
-  function showExportModal(onConfirm) {
+  function showExportModal(onConfirm, showImgMode = true) {
     document.getElementById('modal-export-summary').innerHTML = buildExportSummary()
+    const imgModeSection = document.getElementById('modal-export-overlay').querySelector('[data-img-mode]')
+    if (imgModeSection) imgModeSection.style.display = showImgMode ? '' : 'none'
     const overlay = document.getElementById('modal-export-overlay')
     overlay.style.display = 'flex'
     pendingExportFn = onConfirm
@@ -888,7 +890,7 @@ ${gridHtml}
   // ── 輸出 ZIP ──
   document.getElementById('export-cards').addEventListener('click', () => {
     if (!document.querySelectorAll('.op-card').length) return
-    showExportModal(doExportZip)
+    showExportModal(doExportZip, false)
   })
 
   async function doExportZip() {
