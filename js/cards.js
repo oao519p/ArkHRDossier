@@ -102,7 +102,7 @@ const skillIconUrl  = id => {
   return `https://torappu.prts.wiki/assets/skill_icon/skill_icon_${id}.png`
 }
 const specIconUrl   = lv => `./image/specialized_icon/specialized_tiny_${lv}.png`
-const equipIconUrl  = t  => t ? `https://torappu.prts.wiki/assets/uniequip_direction/${t}.png` : ''
+const equipIconUrl  = t  => t ? `https://torappu.prts.wiki/assets/uniequip_direction/${String(t).toLowerCase()}.png` : ''
 
 // ── mkImg ──
 function mkImg(src, cls, skillId, lazy) {

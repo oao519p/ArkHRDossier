@@ -457,7 +457,7 @@
   const potentialUrl  = r  => `https://torappu.prts.wiki/assets/potential_icon/potential_${r}.png`
   const skillIconUrl  = id => id ? `https://torappu.prts.wiki/assets/skill_icon/skill_icon_${id}.png` : SKILL_NONE
   const specIconUrl   = lv => `https://torappu.prts.wiki/assets/specialized_icon/specialized_tiny_${lv}.png`
-  const equipIconUrl  = t  => t ? `https://torappu.prts.wiki/assets/uniequip_direction/${t}.png` : ''
+  const equipIconUrl  = t  => t ? `https://torappu.prts.wiki/assets/uniequip_direction/${String(t).toLowerCase()}.png` : ''
 
   function mkImg(src, cls, skillId) {
     const img = document.createElement('img')
