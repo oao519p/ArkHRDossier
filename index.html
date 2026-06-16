@@ -42,6 +42,7 @@
   <title>Arknights HR Dossier</title>
   <link rel="icon" type="image/png" href="/ArkHRDossier/image/icon.png">
   <link rel="shortcut icon" href="/ArkHRDossier/image/icon.png">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700&display=swap">
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/cards.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
@@ -301,7 +302,8 @@
         <!-- 檢視模式切換 -->
         <div class="ctrl-row">
           <span class="ctrl-label">檢視</span>
-          <button class="btn-sm active" data-view="card">卡片模式</button>
+          <button class="btn-sm active" data-view="prts">編隊模式</button>
+          <button class="btn-sm" data-view="card">卡片模式</button>
           <button class="btn-sm" data-view="table">表格模式</button>
         </div>
         <!-- 技能切換 -->
@@ -317,6 +319,11 @@
           <button class="btn-sm active" data-equip="default">預設模組</button>
           <button class="btn-sm" data-equip="all">全部模組</button>
           <button class="btn-sm" data-equip="none">關閉不顯示</button>
+        </div>
+        <!-- 顯示開關（prts 模式專用） -->
+        <div class="ctrl-row" id="prts-vis-row">
+          <span class="ctrl-label">顯示</span>
+          <button class="btn-sm active" data-vis="spec3-badge">全專精標誌</button>
         </div>
         <!-- 顯示開關 -->
         <div class="ctrl-row" id="vis-row">
@@ -365,7 +372,7 @@
   </div><!-- /container -->
 
   <footer>
-    <span id="app-version">v0.2.0-beta</span>
+    <span id="app-version">v1.0.0</span>
     &nbsp;｜&nbsp;
     © 2026 &nbsp;｜&nbsp;
     友站：<a href="https://www.facebook.com/TWDrMemo" target="_blank">屑博備忘錄</a>

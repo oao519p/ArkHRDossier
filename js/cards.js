@@ -40,7 +40,7 @@ const SORT_LABELS = {
 let gData          = null
 let skillMode      = 'default'
 let equipMode      = 'default'
-let viewMode       = 'card'
+let viewMode       = 'prts'
 let sortMode       = 'default'
 let sortDesc       = false
 let searchQuery    = ''
@@ -55,6 +55,7 @@ const visFlags = {
   'skill-badge': true,
   'rarity-icon': true,
   'potential':   true,
+  'spec3-badge': true,
 }
 
 // ── URL helpers ──
@@ -176,6 +177,8 @@ function rerender() {
   const allowedRarities = new Set(getChecked('rarity-filter').map(Number))
   if (viewMode === 'table') {
     renderTable(gData, allowedProfs, allowedRarities, searchQuery, sortMode, sortDesc)
+  } else if (viewMode === 'prts') {
+    renderPRTS(gData, allowedProfs, allowedRarities, searchQuery, sortMode)
   } else {
     renderGrid(gData, allowedProfs, allowedRarities, searchQuery, sortMode)
   }
@@ -469,6 +472,231 @@ function renderGrid(data, allowedProfs, allowedRarities, searchQuery, sortMode) 
   document.getElementById('count-label').textContent = `顯示 ${shown} / ${chars.length} 位幹員`
 }
 
+// 滿級判斷：根據稀有度、精英階段、等級判斷是否滿級
+function isMaxLevel(rarity, evolvePhase, level) {
+  // 精二滿級
+  if (evolvePhase === 2) {
+    if (rarity === 5 && level >= 90) return true
+    if (rarity === 4 && level >= 80) return true
+    if (rarity === 3 && level >= 70) return true
+  }
+  // 精一滿級
+  if (evolvePhase === 1) {
+    if (rarity === 5 && level >= 80) return true
+    if (rarity === 4 && level >= 70) return true
+    if (rarity === 3 && level >= 60) return true
+    if (rarity === 2 && level >= 55) return true
+  }
+  // 精零滿級
+  if (evolvePhase === 0) {
+    if (rarity === 5 && level >= 50) return true
+    if (rarity === 4 && level >= 50) return true
+    if (rarity === 3 && level >= 45) return true
+    if (rarity === 2 && level >= 40) return true
+    if ((rarity === 0 || rarity === 1) && level >= 30) return true
+  }
+  return false
+}
+
+// ── renderPRTS ──
+function renderPRTS(data, allowedProfs, allowedRarities, searchQuery, sortMode) {
+  const out = document.getElementById('card-output')
+  out.innerHTML = ''
+
+  const chars        = data.chars        || []
+  const charInfoMap  = data.charInfoMap  || {}
+  const equipInfoMap = data.equipmentInfoMap || data.equipInfoMap || {}
+
+  // 裝飾圖片 URL（根據稀有度，0-2 共用 0.png）
+  const decoBgUrl    = r => `./image/deco-bg-img/${r <= 2 ? 0 : r}.png`
+  const decoLightUrl = r => `./image/deco-light/${r}.png`
+  const decoLhUrl    = r => `./image/deco-lh/${r <= 2 ? 0 : r}.png`
+  const decoUhUrl    = r => `./image/deco-uh/${r}.png`
+  const decoUhsUrl   = () => `./image/deco-uh/uhs.png`
+  const prtsRarityUrl = r => `./image/rarity_icon/rarity_${r}_yellow.png`
+  const prtsProfUrl   = p => `./image/profession_large_icon/${p.toLowerCase()}.png`
+
+  const q = (searchQuery || '').trim().toLowerCase()
+  let filtered = chars.filter(c => {
+    const info   = charInfoMap[c.charId] || {}
+    const rarity = info.rarity ?? c.rarity ?? 0
+    const prof   = info.profession || 'PIONEER'
+    if (!allowedProfs.has(prof))      return false
+    if (!allowedRarities.has(rarity)) return false
+    if (q) {
+      const name = (info.name || c.charId).toLowerCase()
+      if (!name.includes(q)) return false
+    }
+    return true
+  })
+
+  const d = sortDesc ? -1 : 1
+  const origIndex = new Map(chars.map((c, i) => [c.charId + c.skinId, i]))
+  filtered.sort((a, b) => {
+    const ia = charInfoMap[a.charId] || {}
+    const ib = charInfoMap[b.charId] || {}
+    if (sortMode === 'default') {
+      return ((origIndex.get(a.charId + a.skinId) ?? 0) - (origIndex.get(b.charId + b.skinId) ?? 0)) * d
+    }
+    if (sortMode === 'rarity') {
+      return ((ib.rarity ?? b.rarity ?? 0) - (ia.rarity ?? a.rarity ?? 0)) * d
+    }
+    if (sortMode === 'prof') {
+      const pa = PROF_ORDER.indexOf(ia.profession || 'PIONEER')
+      const pb = PROF_ORDER.indexOf(ib.profession || 'PIONEER')
+      if (pa !== pb) return (pa - pb) * d
+      if (b.evolvePhase !== a.evolvePhase) return b.evolvePhase - a.evolvePhase
+      return b.level - a.level
+    }
+    if (b.evolvePhase !== a.evolvePhase) return (b.evolvePhase - a.evolvePhase) * d
+    return (b.level - a.level) * d
+  })
+
+  const grid = document.createElement('div')
+  grid.className = 'prts-grid'
+
+  filtered.forEach(c => {
+    const info   = charInfoMap[c.charId] || {}
+    const rarity = info.rarity ?? c.rarity ?? 0
+    const prof   = info.profession || 'PIONEER'
+
+    const defaultSkillId = c.defaultSkillId || ''
+    const defaultEquipId = c.defaultEquipId || ''
+    const equipInfo      = equipInfoMap[defaultEquipId] || {}
+    const typeIcon       = equipInfo.typeIcon || ''
+
+    const wrap = document.createElement('div')
+    wrap.className = 'prts-wrap'
+
+    const card = document.createElement('div')
+    card.className = 'prts-card'
+
+    // 半身像（z-index 2）
+    const portraitBg = document.createElement('div')
+    portraitBg.className = 'portrait-bg'
+    portraitBg.style.backgroundImage = `url('${skinIdToUrl(c.skinId)}')`
+    card.appendChild(portraitBg)
+
+    // bg 背景裝飾（z-index 1）
+    card.appendChild(mkImg(decoBgUrl(rarity), 'deco-bg-img'))
+
+    // patch 左下角底色（z-index 3）
+    const patch = document.createElement('div')
+    patch.className = 'patch'
+    card.appendChild(patch)
+
+    // light 亮光（z-index 3）
+    card.appendChild(mkImg(decoLightUrl(rarity), 'deco-light'))
+
+    // lh 底部裝飾（z-index 4）
+    card.appendChild(mkImg(decoLhUrl(rarity), 'deco-lh'))
+
+    // uhs 陰影（z-index 5）
+    card.appendChild(mkImg(decoUhsUrl(), 'deco-uhs'))
+
+    // uh 左上角裝飾（z-index 6）
+    card.appendChild(mkImg(decoUhUrl(rarity), 'deco-uh'))
+
+    // 職業圖示（z-index 7）
+    card.appendChild(mkImg(prtsProfUrl(prof), 'prof-icon'))
+
+    // 稀有度（z-index 8）
+    card.appendChild(mkImg(prtsRarityUrl(rarity), 'rarity-stars'))
+
+    // 全技能專三徽章（z-index 10，右上角，僅 rarity 3/4/5 且全專三時顯示）
+    if (visFlags['spec3-badge'] && c.skills && c.skills.length > 0 && (rarity === 5 || rarity === 4 || rarity === 3)) {
+      const requiredCount = rarity === 5 ? 3 : 2
+      const skillsWithSpec = c.skills.filter(s => typeof s.specializeLevel === 'number')
+      if (skillsWithSpec.length >= requiredCount && skillsWithSpec.slice(0, requiredCount).every(s => s.specializeLevel === 3)) {
+        card.appendChild(mkImg('./image/specialized_icon/spec3.png', 'all-spec3-badge'))
+      }
+    }
+
+    // 底部列
+    const bottomRow = document.createElement('div')
+    bottomRow.className = 'bottom-row'
+
+    // 左：精英圖標 + 等級圈
+    const bottomLeft = document.createElement('div')
+    bottomLeft.className = 'bottom-left'
+    bottomLeft.appendChild(mkImg(eliteIconUrl(c.evolvePhase), 'elite-icon-above'))
+    const levelCircle = document.createElement('div')
+    levelCircle.className = 'level-circle'
+    // 滿級判斷
+    const isMax = isMaxLevel(rarity, c.evolvePhase, c.level)
+    if (isMax) {
+      levelCircle.classList.add('max-level')
+      const inner = document.createElement('div')
+      inner.className = 'level-inner'
+      const lvLabel = document.createElement('span')
+      lvLabel.className = 'level-lv'
+      lvLabel.textContent = 'LV'
+      const lvTxt = document.createElement('span')
+      lvTxt.className = 'level-text'
+      lvTxt.textContent = c.level
+      inner.appendChild(lvLabel)
+      inner.appendChild(lvTxt)
+      levelCircle.appendChild(inner)
+    } else {
+      const lvLabel = document.createElement('span')
+      lvLabel.className = 'level-lv'
+      lvLabel.textContent = 'LV'
+      const lvTxt = document.createElement('span')
+      lvTxt.className = 'level-text'
+      lvTxt.textContent = c.level
+      levelCircle.appendChild(lvLabel)
+      levelCircle.appendChild(lvTxt)
+    }
+    bottomLeft.appendChild(levelCircle)
+    bottomRow.appendChild(bottomLeft)
+
+    // 中：模組格
+    const bottomCenter = document.createElement('div')
+    bottomCenter.className = 'bottom-center'
+    if (typeIcon) {
+      const equipSlot = document.createElement('div')
+      equipSlot.className = 'equip-slot'
+      const equipDiv = document.createElement('div')
+      equipDiv.className = 'equip-icon'
+      equipDiv.style.backgroundImage = `url('${equipIconUrl(typeIcon)}')`
+      equipDiv.classList.add(typeIcon.toLowerCase() === 'original' ? 'equip-original' : 'equip-special')
+      equipSlot.appendChild(equipDiv)
+      bottomCenter.appendChild(equipSlot)
+    }
+    bottomRow.appendChild(bottomCenter)
+
+    // 右：潛能 + 技能 + 名字
+    const bottomRight = document.createElement('div')
+    bottomRight.className = 'bottom-right'
+    const potBg = document.createElement('div')
+    potBg.className = 'potential-bg'
+    potBg.appendChild(mkImg(potentialUrl(c.potentialRank), 'potential-icon'))
+    bottomRight.appendChild(potBg)
+    const skillWrap = document.createElement('div')
+    skillWrap.className = 'skill-icon-wrap'
+    skillWrap.appendChild(mkImg(skillIconUrl(defaultSkillId), 'skill-icon', defaultSkillId || null))
+    bottomRight.appendChild(skillWrap)
+    const charName = document.createElement('div')
+    charName.className = 'char-name'
+    charName.textContent = info.name || c.charId
+    bottomRight.appendChild(charName)
+    bottomRow.appendChild(bottomRight)
+
+    card.appendChild(bottomRow)
+    wrap.appendChild(card)
+
+    const nameEl = document.createElement('div')
+    nameEl.className = 'op-name'
+    nameEl.textContent = info.name || c.charId
+    wrap.appendChild(nameEl)
+
+    grid.appendChild(wrap)
+  })
+
+  out.appendChild(grid)
+  document.getElementById('count-label').textContent = `顯示 ${filtered.length} / ${chars.length} 位幹員`
+}
+
 // ── 圖片轉 base64（供 export HTML 用）──
 async function imgToBase64(url) {
   try {
@@ -560,6 +788,14 @@ function updateSortBtns() {
 
 // ── 事件綁定 ──
 function bindEvents() {
+  // 初始化各模式專用列的顯示狀態（viewMode 預設為 'prts'）
+  ;['skill-mode-row', 'equip-mode-row', 'vis-row', 'name-row'].forEach(id => {
+    const el = document.getElementById(id)
+    if (el) el.style.display = 'none'
+  })
+  const prtsVisRowInit = document.getElementById('prts-vis-row')
+  if (prtsVisRowInit) prtsVisRowInit.style.display = ''
+
   // 顯示開關
   document.querySelectorAll('[data-vis]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -641,7 +877,7 @@ function bindEvents() {
     const SORT_NAMES  = { default: '獲取時間', elite: '等級', rarity: '稀有度', prof: '職業' }
     const SKILL_NAMES = { default: '預設技能', all: '全部技能', none: '關閉不顯示' }
     const EQUIP_NAMES = { default: '預設模組', all: '全部模組', none: '關閉不顯示' }
-    const VIEW_NAMES  = { card: '卡片模式', table: '表格模式' }
+    const VIEW_NAMES  = { card: '卡片模式', table: '表格模式', prts: '編隊模式' }
     const VIS_LABELS  = {
       'rarity-bar': '稀有度顏色條', 'elite': '精英化', 'level': '等級',
       'skill-badge': '技能等級', 'rarity-icon': '稀有度星號', 'potential': '潛能',
@@ -892,12 +1128,12 @@ ${gridHtml}
 
   // ── 輸出 ZIP ──
   document.getElementById('export-cards').addEventListener('click', () => {
-    if (!document.querySelectorAll('.op-card').length) return
+    if (!document.querySelectorAll('.op-card, .prts-card').length) return
     showExportModal(doExportZip, false)
   })
 
   async function doExportZip() {
-    const cards = [...document.querySelectorAll('.op-card')]
+    const cards = [...document.querySelectorAll('.op-card, .prts-card')]
     if (!cards.length) return
     const statusEl  = document.getElementById('export-status')
     const btnPause  = document.getElementById('export-pause')
@@ -939,7 +1175,7 @@ ${gridHtml}
       if (exportCancelled) { statusEl.textContent = '已取消'; break }
 
       const card   = cards[i]
-      const wrap   = card.closest('.op-wrap')
+      const wrap   = card.closest('.op-wrap, .prts-wrap')
       const nameEl = wrap?.querySelector('.op-name')
       const name   = (nameEl?.textContent || `card_${i + 1}`).trim().replace(/[\\/:*?"<>|]/g, '_')
       statusEl.textContent = `處理中 ${i + 1} / ${cards.length}　${name}`
@@ -1022,9 +1258,9 @@ ${gridHtml}
     const COLS       = 10
     const isLight    = document.body.classList.contains('light')
     const bgColor    = isLight ? '#f1f5f9' : '#111827'
-    const wraps      = [...document.querySelectorAll('#card-output .op-wrap')]
+    const wraps      = [...document.querySelectorAll('#card-output .op-wrap, #card-output .prts-wrap')]
     const cardW      = wraps.length ? wraps[0].offsetWidth  : 120
-    const cardH      = wraps.length ? wraps[0].offsetHeight : 160
+    const cardH      = wraps.length ? wraps[0].offsetHeight : 250
     const gap        = 8
     const padX       = 16
     const padY       = 16
@@ -1220,15 +1456,18 @@ ${gridHtml}
       viewMode = btn.dataset.view
       document.querySelectorAll('[data-view]').forEach(b => b.classList.remove('active'))
       btn.classList.add('active')
-      // 卡片模式才顯示的控制列
+      // 卡片模式才顯示的控制列（prts 模式也隱藏）
       const cardOnly = ['skill-mode-row', 'equip-mode-row', 'vis-row', 'name-row']
       cardOnly.forEach(id => {
         const el = document.getElementById(id)
         if (el) el.style.display = viewMode === 'card' ? '' : 'none'
       })
-      // 表格模式隱藏 ZIP 下載（無法截圖）
+      // prts 模式專用顯示列
+      const prtsVisRow = document.getElementById('prts-vis-row')
+      if (prtsVisRow) prtsVisRow.style.display = viewMode === 'prts' ? '' : 'none'
+      // 表格模式隱藏 ZIP 下載（無法截圖），prts 模式保留
       const exportCards = document.getElementById('export-cards')
-      if (exportCards) exportCards.style.display = viewMode === 'card' ? '' : 'none'
+      if (exportCards) exportCards.style.display = viewMode === 'table' ? 'none' : ''
       rerender()
     })
   })

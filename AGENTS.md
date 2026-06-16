@@ -130,3 +130,92 @@ npm start
 - **憑證過期**：SKPORT/SKLAND token 有時效性，需重新從 localStorage 取得
 - **CLI 腳本**：`fetch_skport.js` 需手動在檔案內填入 `INPUT` 憑證，不接受命令列參數
 - **`CryptoJS` 來源**：CLI 腳本使用 npm 套件；瀏覽器端 `api.js` 使用 CDN（`index.html` 中載入）
+
+---
+
+## 編隊模式（PRTS 模式）
+
+新增的檢視模式，參考 PRTS Wiki 的 half-container 風格排版。
+
+### 檢視模式
+
+| 模式 | `viewMode` 值 | 說明 |
+|------|---------------|------|
+| 編隊模式 | `'prts'` | PRTS 風格卡片，120×250px，裝飾圖層疊加 |
+| 卡片模式 | `'card'` | 原有卡片模式 |
+| 表格模式 | `'table'` | 表格列表 |
+
+**預設模式**：編隊模式（`viewMode = 'prts'`）
+
+### 檔案
+
+| 檔案 | 說明 |
+|------|------|
+| `css/cards.css` | 末尾新增 `.prts-card`、`.prts-grid`、`.prts-wrap` 等專屬 CSS |
+| `js/cards.js` | 新增 `renderPRTS()` 函數、`isMaxLevel()` 滿級判斷 |
+| `index.html` | 檢視列新增 `<button data-view="prts">編隊模式</button>` |
+
+### CSS 層次（z-index）
+
+| z-index | 元素 | 說明 |
+|---------|------|------|
+| 1 | `.deco-bg-img` | 背景裝飾 |
+| 2 | `.portrait-bg` | 半身像（div + background-image） |
+| 3 | `.patch` | 左下角底色填充 |
+| 3 | `.deco-light` | 亮光 |
+| 4 | `.deco-lh` | lh 底部裝飾 |
+| 5 | `.deco-uhs` | uh 陰影 |
+| 6 | `.deco-uh` | uh 左上角裝飾 |
+| 7 | `.prof-icon` | 職業圖示 |
+| 8 | `.rarity-stars` | 稀有度 |
+| 9 | `.bottom-row` | 底部 UI（等級、模組、技能、名字） |
+| 10 | `.all-spec3-badge` | 全技能專三標誌（右上角） |
+
+### 裝飾圖片（本地）
+
+| 圖片 | 路徑 | 稀有度邏輯 |
+|------|------|-----------|
+| uh | `./image/deco-uh/{r}.png` | 按稀有度 0-5 各用對應檔案 |
+| uhs | `./image/deco-uh/uhs.png` | 統一使用同一個 |
+| lh | `./image/deco-lh/{r}.png` | 0-2 共用 `0.png`，3-5 各用對應 |
+| light | `./image/deco-light/{r}.png` | 按稀有度 0-5 各用對應檔案 |
+| bg-img | `./image/deco-bg-img/{r}.png` | 0-2 共用 `0.png`，3-5 各用對應 |
+
+### 滿級等級圈
+
+滿級時等級圈顯示金色漸層邊框（`#fadc06` → `#c49a00` → fade out）。
+
+**滿級條件**：
+
+| 稀有度 | 精二 | 精一 | 精零 |
+|--------|------|------|------|
+| ★6 | Lv90 | Lv80 | Lv50 |
+| ★5 | Lv80 | Lv70 | Lv50 |
+| ★4 | Lv70 | Lv60 | Lv45 |
+| ★3 | — | Lv55 | Lv40 |
+| ★1-2 | — | — | Lv30 |
+
+### 全技能專三標誌（`all-spec3-badge`）
+
+符合條件時在卡片右上角（`top:4px right:5px`，z-index 10）顯示 `./image/specialized_icon/spec3.png`：
+
+| 稀有度 | 需要技能數 | 條件 |
+|--------|-----------|------|
+| rarity 5（★6） | 3 | 全部 `specializeLevel === 3` |
+| rarity 4（★5）/ rarity 3（★4） | 2 | 全部 `specializeLevel === 3` |
+| rarity 2 以下 | — | 不顯示 |
+
+- `visFlags['spec3-badge']`：控制開關，預設 `true`
+- 控制列：`#prts-vis-row`（僅編隊模式顯示），按鈕 `data-vis="spec3-badge"`
+- 圖片本身帶光效，CSS 只做定位（不使用 `filter`，確保 html2canvas 匯出正確）
+
+### 控制列行為
+
+- 編隊模式顯示：`#prts-vis-row`（全專精標誌開關）
+- 編隊模式隱藏：技能切換、模組切換、顯示開關（卡片用）、名字切換
+
+### 輸出
+
+- **ZIP**：支援 `.prts-card` 截圖
+- **長圖 PNG**：支援 `.prts-wrap` 包含
+- **HTML**：正常輸出

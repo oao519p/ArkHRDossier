@@ -474,3 +474,283 @@ body.light .tbl-elite-icon { filter: drop-shadow(0 0 2px rgba(0,0,0,0.5)); }
   background-position: center;
 }
 .tbl-none { font-size: 12px; color: #475569; }
+
+/* ══════════════════════════════════════════
+   PRTS 模式卡片（.prts-grid / .prts-card）
+   ══════════════════════════════════════════ */
+.prts-grid { display: flex; flex-wrap: wrap; gap: 16px; }
+
+.prts-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 120px;
+}
+
+.prts-card {
+  position: relative;
+  width: 120px;
+  height: 250px;
+  overflow: hidden;
+}
+
+/* bg 背景裝飾（z-index 1，bottom:7 left:5px） */
+.prts-card .deco-bg-img {
+  position: absolute;
+  bottom: 7px; left: 5px;
+  width: 110px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* 半身像（z-index 2，在 bg 上面） */
+.prts-card .portrait-bg {
+  position: absolute;
+  top: 0; left: 5px;
+  width: 110px;
+  height: 220px;
+  background-size: cover;
+  background-position: center top;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* patch 左下角底色填充（z-index 3） */
+.prts-card .patch {
+  position: absolute;
+  bottom: 5px; left: 5px;
+  width: 80px;
+  height: 30px;
+  background-color: #2c2c2c;
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* light 亮光（z-index 3，bottom:25 left:5px） */
+.prts-card .deco-light {
+  position: absolute;
+  bottom: 25px; left: 5px;
+  width: 110px;
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* lh 底部裝飾（z-index 4，bottom:0 left:0） */
+.prts-card .deco-lh {
+  position: absolute;
+  bottom: 0; left: 0;
+  width: 120px;
+  z-index: 4;
+  pointer-events: none;
+}
+
+/* uhs uh 陰影（z-index 5，top:0 left:0） */
+.prts-card .deco-uhs {
+  position: absolute;
+  top: 0; left: 0;
+  width: 70px;
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* uh 左上角裝飾（z-index 6，top:0 left:0） */
+.prts-card .deco-uh {
+  position: absolute;
+  top: 0; left: 0;
+  width: 70px;
+  z-index: 6;
+  pointer-events: none;
+}
+
+/* 職業圖示（z-index 7，top:5 left:3） */
+.prts-card .prof-icon {
+  position: absolute;
+  top: 5px; left: 3px;
+  width: 25px;
+  z-index: 7;
+  pointer-events: none;
+  object-fit: contain;
+}
+
+/* 稀有度（z-index 8，top:0 left:30） */
+.prts-card .rarity-stars {
+  position: absolute;
+  top: 0; left: 30px;
+  height: 18px;
+  width: auto;
+  z-index: 8;
+  pointer-events: none;
+  object-fit: contain;
+}
+
+/* 底部 UI 定位容器（z-index 9） */
+.prts-card .bottom-row {
+  position: absolute;
+  bottom: 4px;
+  left: 0;
+  right: 3px;
+  z-index: 9;
+  height: 0;
+}
+
+/* 左下：精英圖標 + 等級圈 */
+.prts-card .bottom-left {
+  position: absolute;
+  bottom: 0;
+  left: 1px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding-bottom: 20px;
+}
+.prts-card .elite-icon-above {
+  width: 48px;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.9));
+}
+.prts-card .level-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.7);
+}
+.prts-card .level-circle.max-level {
+  border: none;
+  background: linear-gradient(180deg, #fadc06 0%, #c49a00 40%, rgba(196,154,0,0.3) 70%, rgba(196,154,0,0.2) 100%);
+  padding: 2px;
+}
+.prts-card .level-circle.max-level .level-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: #1a1a2e;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.prts-card .level-lv {
+  font-size: 6px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.7);
+  line-height: 1;
+  letter-spacing: 0.5px;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+}
+.prts-card .level-text {
+  font-size: 20px;
+  font-family: 'Josefin Sans', 'Segoe UI', sans-serif;
+  font-weight: 400;
+  color: #fff;
+  line-height: 1;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+}
+
+/* 中下：模組格 */
+.prts-card .bottom-center {
+  position: absolute;
+  bottom: 0;
+  left: 52%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: 18px;
+}
+.prts-card .equip-slot {
+  width: 38px;
+  height: 38px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.prts-card .equip-icon {
+  width: 38px;
+  height: 38px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+.prts-card .equip-icon.equip-original {
+  background-size: 20px auto;
+  margin-top: 6px;
+}
+.prts-card .equip-icon.equip-special {
+  background-size: 45px auto;
+}
+
+/* 右下：潛能 + 技能 + 名字 */
+.prts-card .bottom-right {
+  position: absolute;
+  bottom: 0;
+  right: 5px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.prts-card .potential-bg {
+  background: rgba(0,0,0,0.3);
+  border: 0.5px solid rgba(255,255,255,0.3);
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-end;
+}
+.prts-card .potential-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  display: block;
+}
+.prts-card .skill-icon-wrap {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.prts-card .skill-icon {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+.prts-card .char-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f1f5f9;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.95);
+  line-height: 1.2;
+}
+
+/* 全技能專三徽章（右上角，z-index 10） */
+.prts-card .all-spec3-badge {
+  position: absolute;
+  top: 4px; right: 5px;
+  width: auto;
+  height: 20px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* 卡片下方名稱 */
+.prts-wrap .op-name {
+  font-size: 11px; color: #ccc;
+  text-align: center;
+  margin-top: 4px;
+  max-width: 120px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+body.light .prts-wrap .op-name { color: #334155; }
