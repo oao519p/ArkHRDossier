@@ -160,7 +160,7 @@ npm start
 | z-index | 元素 | 說明 |
 |---------|------|------|
 | 1 | `.deco-bg-img` | 背景裝飾 |
-| 2 | `.portrait-bg` | 半身像（div + background-image） |
+| 2 | `.portrait-bg` | 半身像（`<img>` + `object-fit: cover`） |
 | 3 | `.patch` | 左下角底色填充 |
 | 3 | `.deco-light` | 亮光 |
 | 4 | `.deco-lh` | lh 底部裝飾 |

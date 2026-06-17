@@ -572,10 +572,7 @@ function renderPRTS(data, allowedProfs, allowedRarities, searchQuery, sortMode) 
     card.className = 'prts-card'
 
     // 半身像（z-index 2）
-    const portraitBg = document.createElement('div')
-    portraitBg.className = 'portrait-bg'
-    portraitBg.style.backgroundImage = `url('${skinIdToUrl(c.skinId)}')`
-    card.appendChild(portraitBg)
+    card.appendChild(mkImg(skinIdToUrl(c.skinId), 'portrait-bg', null, true))
 
     // bg 背景裝飾（z-index 1）
     card.appendChild(mkImg(decoBgUrl(rarity), 'deco-bg-img'))
@@ -1187,6 +1184,12 @@ ${gridHtml}
           portrait.onload  = resolve
           portrait.onerror = resolve
         })
+      }
+      // PRTS 卡片：等待 .portrait-bg <img> 載入完成
+      const portraitBgImg = card.querySelector('.portrait-bg')
+      if (portraitBgImg && !portraitBgImg.complete) {
+        portraitBgImg.loading = 'eager'
+        await new Promise(r => { portraitBgImg.onload = r; portraitBgImg.onerror = r })
       }
       try {
         const canvas = await html2canvas(card, { useCORS: true, allowTaint: false, scale: 2, backgroundColor: null })
