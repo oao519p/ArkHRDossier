@@ -2,7 +2,7 @@
 
 明日方舟人事部文檔 — 玩家幹員資料查詢工具，支援繁中服（SKPORT）與簡中服（SKLAND）。
 
-![version](https://img.shields.io/badge/version-v1.0.0-blue)
+![version](https://img.shields.io/badge/version-v1.0.1-blue)
 ![preview](https://img.shields.io/badge/status-active-brightgreen)
 
 > ⚠️ 僅支援電腦版瀏覽器，手機版功能可能無法正常使用
@@ -75,6 +75,8 @@ copy(localStorage.getItem('SK_OAUTH_CRED_KEY') + ',' + localStorage.getItem('SK_
 ```
 
 4. 剪貼簿會自動複製 `cred,token`，貼入網頁輸入框即可
+
+> **⚠️ 無法貼上？** Chrome DevTools 可能出現貼上保護警告，請先在 Console 手動輸入 `allow pasting` 並按 Enter，之後即可正常貼上。網頁步驟一說明旁的 **?** 按鈕也有詳細說明。
 
 ---
 

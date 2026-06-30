@@ -160,7 +160,8 @@
       <div style="font-size:13px;line-height:1.8;">
         1. 圖片是外連的，加載需要一點時間QAQ <br>
         2. 僅支援電腦版瀏覽器，手機版功能可能無法正常使用 <br>
-        3. 僅支援: 簡中服(官/B) & 繁中服
+        3. 僅支援: 簡中服(官/B) & 繁中服 <br>
+        4. 如果在步驟1貼上指令時出現警告無法貼上，可點擊 <span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:#475569;color:#f1f5f9;font-size:9px;font-weight:700;vertical-align:middle">?</span> 查看解決方法
       </div>
       <label style="display:flex;align-items:center;gap:8px;margin-top:16px;font-size:12px;cursor:pointer;color:#64748b">
         <input type="checkbox" id="modal-no-show" style="cursor:pointer">
@@ -192,7 +193,17 @@
           <button class="btn-sm active" id="platform-skport" data-platform="skport">SKPORT（繁中服）</button>
           <button class="btn-sm" id="platform-skland" data-platform="skland">SKLAND（簡中服）</button>
         </div>
-        <p>在瀏覽器開啟 <a id="platform-link" href="https://www.skport.com" target="_blank" style="color:#60a5fa">SKPORT</a> 並登入，按 <kbd>F12</kbd> 開啟開發者工具，切換到 <strong>Console</strong> 分頁，貼上以下指令並按 Enter：</p>
+        <p>在瀏覽器開啟 <a id="platform-link" href="https://www.skport.com" target="_blank" style="color:#60a5fa">SKPORT</a> 並登入，按 <kbd>F12</kbd> 開啟開發者工具，切換到 <strong>Console</strong> 分頁，貼上以下指令並按 Enter：<span id="paste-hint-btn" style="display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:#475569;color:#f1f5f9;font-size:10px;font-weight:700;cursor:pointer;user-select:none;vertical-align:middle;margin-left:5px;flex-shrink:0">?</span></p>
+        <!-- paste-hint tooltip -->
+        <div id="paste-hint" style="display:none;border-radius:10px;padding:12px 16px;font-size:12px;line-height:1.7;margin-bottom:10px;max-width:560px">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
+            <div class="paste-hint-title" style="font-weight:700;font-size:13px">⚠️ 無法貼上？Chrome DevTools 貼上保護</div>
+            <button id="paste-hint-close" style="background:none;border:none;cursor:pointer;font-size:14px;line-height:1;padding:0 0 0 12px;flex-shrink:0" title="關閉">✕</button>
+          </div>
+          <div class="paste-hint-desc" style="margin-bottom:8px">如果 Console 出現以下警告，導致無法貼上指令：</div>
+          <div class="paste-hint-warn" style="border-radius:6px;padding:10px 12px;margin-bottom:10px;font-size:11px;line-height:1.6">⚠️ Warning: Don't paste code into the DevTools Console that you don't understand or haven't reviewed yourself. This could allow attackers to steal your identity or take control of your computer. Please type 'allow pasting' below to allow pasting.</div>
+          <div class="paste-hint-desc">請先在 Console 輸入框中手動輸入 <code id="paste-hint-code" style="padding:1px 6px;border-radius:4px;font-size:11px">allow pasting</code> 並按 <kbd>Enter</kbd>，之後即可正常貼上指令。</div>
+        </div>
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
           <div class="code-block" id="cred-cmd" style="flex:1;margin:0;overflow-x:auto;white-space:nowrap">copy(localStorage.getItem('SK_OAUTH_CRED_KEY') + ',' + localStorage.getItem('SK_TOKEN_CACHE_KEY'))</div>
           <button class="btn-icon" id="btn-copy-cmd" style="flex-shrink:0">📋 複製</button>
@@ -372,7 +383,7 @@
   </div><!-- /container -->
 
   <footer>
-    <span id="app-version">v1.0.0</span>
+    <span id="app-version">v1.0.1</span>
     &nbsp;｜&nbsp;
     © 2026 &nbsp;｜&nbsp;
     友站：<a href="https://www.facebook.com/TWDrMemo" target="_blank">屑博備忘錄</a>
@@ -463,6 +474,17 @@
         hintBox.style.display = hintBox.style.display === 'none' ? 'block' : 'none'
       })
       document.addEventListener('click', () => { hintBox.style.display = 'none' })
+    }
+
+    const pasteHintBtn   = document.getElementById('paste-hint-btn')
+    const pasteHint      = document.getElementById('paste-hint')
+    const pasteHintClose = document.getElementById('paste-hint-close')
+    if (pasteHintBtn && pasteHint) {
+      pasteHintBtn.addEventListener('click', e => {
+        e.stopPropagation()
+        pasteHint.style.display = pasteHint.style.display === 'none' ? 'block' : 'none'
+      })
+      pasteHintClose.addEventListener('click', () => { pasteHint.style.display = 'none' })
     }
 
     document.getElementById('stats-toggle').addEventListener('click', () => {

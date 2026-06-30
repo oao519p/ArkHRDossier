@@ -1,6 +1,6 @@
 {
   "name": "arknights-hr-dossier",
-  "version": "0.2.0-beta",
+  "version": "1.0.1",
   "description": "海外版森空島玩家資料抓取工具",
   "type": "module",
   "scripts": {

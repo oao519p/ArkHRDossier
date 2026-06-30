@@ -130,6 +130,7 @@ npm start
 - **憑證過期**：SKPORT/SKLAND token 有時效性，需重新從 localStorage 取得
 - **CLI 腳本**：`fetch_skport.js` 需手動在檔案內填入 `INPUT` 憑證，不接受命令列參數
 - **`CryptoJS` 來源**：CLI 腳本使用 npm 套件；瀏覽器端 `api.js` 使用 CDN（`index.html` 中載入）
+- **Chrome DevTools 貼上保護**：Console 出現 `allow pasting` 警告時無法直接貼上，需先手動輸入 `allow pasting` 並按 Enter。Step 1 說明文字旁的 `?` 按鈕（`#paste-hint-btn`）點擊後展開說明面板，面板右上角 `✕` 關閉，不受頁面其他點擊影響。
 
 ---
 

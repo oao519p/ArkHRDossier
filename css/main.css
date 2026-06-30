@@ -343,3 +343,46 @@ body.light kbd {
   border-color: #94a3b8;
   color: #1e293b;
 }
+
+/* ── Paste hint tooltip ── */
+#paste-hint {
+  background: #1e2130;
+  border: 1px solid #2d3348;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+body.light #paste-hint {
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+#paste-hint-close { color: #64748b; }
+#paste-hint-close:hover { color: #f1f5f9; }
+body.light #paste-hint-close { color: #94a3b8; }
+body.light #paste-hint-close:hover { color: #1e293b; }
+#paste-hint .paste-hint-title { color: #f1f5f9; }
+#paste-hint .paste-hint-desc  { color: #94a3b8; }
+#paste-hint .paste-hint-warn  {
+  background: #fef3c7;
+  color: #78350f;
+  border: 1px solid #f59e0b;
+}
+#paste-hint-code {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  color: #79c0ff;
+}
+
+body.light #paste-hint {
+  background: #fff;
+  border-color: #cbd5e1;
+}
+body.light #paste-hint .paste-hint-title { color: #1e293b; }
+body.light #paste-hint .paste-hint-desc  { color: #64748b; }
+body.light #paste-hint .paste-hint-warn  {
+  background: #fef9c3;
+  color: #713f12;
+  border-color: #eab308;
+}
+body.light #paste-hint-code {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #2563eb;
+}
